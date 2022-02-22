@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2019-2021 The Bitcoin Core developers
+# Copyright (c) 2019-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Tests NODE_COMPACT_FILTERS (BIP 157/158).
@@ -19,7 +19,7 @@ from test_framework.messages import (
     uint256_from_str,
 )
 from test_framework.p2p import P2PInterface
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
 )
@@ -40,7 +40,7 @@ class FiltersClient(P2PInterface):
         self.cfilters.append(message)
 
 
-class CompactFiltersTest(BitcoinTestFramework):
+class CompactFiltersTest(SamcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.rpc_timeout = 480
@@ -56,16 +56,17 @@ class CompactFiltersTest(BitcoinTestFramework):
         peer_1 = self.nodes[1].add_p2p_connection(FiltersClient())
 
         # Nodes 0 & 1 share the same first 999 blocks in the chain.
-        self.generate(self.nodes[0], 999)
+        self.nodes[0].generate(999)
+        self.sync_blocks(timeout=600)
 
         # Stale blocks by disconnecting nodes 0 & 1, mining, then reconnecting
         self.disconnect_nodes(0, 1)
 
-        stale_block_hash = self.generate(self.nodes[0], 1, sync_fun=self.no_op)[0]
+        stale_block_hash = self.nodes[0].generate(1)[0]
         self.nodes[0].syncwithvalidationinterfacequeue()
         assert_equal(self.nodes[0].getblockcount(), 1000)
 
-        self.generate(self.nodes[1], 1001, sync_fun=self.no_op)
+        self.nodes[1].generate(1001)
         assert_equal(self.nodes[1].getblockcount(), 2000)
 
         # Check that nodes have signalled NODE_COMPACT_FILTERS correctly.

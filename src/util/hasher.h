@@ -1,9 +1,9 @@
-// Copyright (c) 2019-2021 The Bitcoin Core developers
+// Copyright (c) 2019 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UTIL_HASHER_H
-#define BITCOIN_UTIL_HASHER_H
+#ifndef SAMCOIN_UTIL_HASHER_H
+#define SAMCOIN_UTIL_HASHER_H
 
 #include <crypto/siphash.h>
 #include <primitives/transaction.h>
@@ -33,6 +33,10 @@ public:
     SaltedOutpointHasher();
 
     /**
+     * This *must* return size_t. With Boost 1.46 on 32-bit systems the
+     * unordered_map will behave unpredictably if the custom hasher returns a
+     * uint64_t, resulting in failures when syncing the chain (#4634).
+     *
      * Having the hash noexcept allows libstdc++'s unordered_map to recalculate
      * the hash during rehash, so it does not have to cache the value. This
      * reduces node's memory by sizeof(size_t). The required recalculation has
@@ -92,4 +96,4 @@ public:
     size_t operator()(const Span<const unsigned char>& script) const;
 };
 
-#endif // BITCOIN_UTIL_HASHER_H
+#endif // SAMCOIN_UTIL_HASHER_H

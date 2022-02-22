@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -41,6 +41,10 @@ static bool operator==(const CBanEntry& lhs, const CBanEntry& rhs)
 
 FUZZ_TARGET_INIT(banman, initialize_banman)
 {
+    // The complexity is O(N^2), where N is the input size, because each call
+    // might call DumpBanlist (or other methods that are at least linear
+    // complexity of the input size).
+    int limit_max_ops{300};
     FuzzedDataProvider fuzzed_data_provider{buffer.data(), buffer.size()};
     SetMockTime(ConsumeTime(fuzzed_data_provider));
     fs::path banlist_file = gArgs.GetDataDirNet() / "fuzzed_banlist";
@@ -48,7 +52,8 @@ FUZZ_TARGET_INIT(banman, initialize_banman)
     const bool start_with_corrupted_banlist{fuzzed_data_provider.ConsumeBool()};
     bool force_read_and_write_to_err{false};
     if (start_with_corrupted_banlist) {
-        assert(WriteBinaryFile(banlist_file + ".json",
+        const std::string sfx{fuzzed_data_provider.ConsumeBool() ? ".dat" : ".json"};
+        assert(WriteBinaryFile(banlist_file.string() + sfx,
                                fuzzed_data_provider.ConsumeRandomLengthString()));
     } else {
         force_read_and_write_to_err = fuzzed_data_provider.ConsumeBool();
@@ -58,12 +63,8 @@ FUZZ_TARGET_INIT(banman, initialize_banman)
     }
 
     {
-        BanMan ban_man{banlist_file, /*client_interface=*/nullptr, /*default_ban_time=*/ConsumeBanTimeOffset(fuzzed_data_provider)};
-        // The complexity is O(N^2), where N is the input size, because each call
-        // might call DumpBanlist (or other methods that are at least linear
-        // complexity of the input size).
-        LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 300)
-        {
+        BanMan ban_man{banlist_file, /* client_interface */ nullptr, /* default_ban_time */ ConsumeBanTimeOffset(fuzzed_data_provider)};
+        while (--limit_max_ops >= 0 && fuzzed_data_provider.ConsumeBool()) {
             CallOneOf(
                 fuzzed_data_provider,
                 [&] {
@@ -105,11 +106,12 @@ FUZZ_TARGET_INIT(banman, initialize_banman)
             SetMockTime(ConsumeTime(fuzzed_data_provider));
             banmap_t banmap;
             ban_man.GetBanned(banmap);
-            BanMan ban_man_read{banlist_file, /*client_interface=*/nullptr, /*default_ban_time=*/0};
+            BanMan ban_man_read{banlist_file, /* client_interface */ nullptr, /* default_ban_time */ 0};
             banmap_t banmap_read;
             ban_man_read.GetBanned(banmap_read);
             assert(banmap == banmap_read);
         }
     }
-    fs::remove(fs::PathToString(banlist_file + ".json"));
+    fs::remove(banlist_file.string() + ".dat");
+    fs::remove(banlist_file.string() + ".json");
 }

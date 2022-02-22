@@ -1,6 +1,6 @@
 // Copyright 2014 BitPay Inc.
 // Distributed under the MIT software license, see the accompanying
-// file COPYING or https://opensource.org/licenses/mit-license.php.
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 //
 // To re-create univalue_escapes.h:
@@ -39,13 +39,13 @@ static void initJsonEscape()
 static void outputEscape()
 {
 	printf(	"// Automatically generated file. Do not modify.\n"
-		"#ifndef BITCOIN_UNIVALUE_UNIVALUE_ESCAPES_H\n"
-		"#define BITCOIN_UNIVALUE_UNIVALUE_ESCAPES_H\n"
+		"#ifndef SAMCOIN_UNIVALUE_UNIVALUE_ESCAPES_H\n"
+		"#define SAMCOIN_UNIVALUE_UNIVALUE_ESCAPES_H\n"
 		"static const char *escapes[256] = {\n");
 
 	for (unsigned int i = 0; i < 256; i++) {
 		if (escapes[i].empty()) {
-			printf("\tnullptr,\n");
+			printf("\tNULL,\n");
 		} else {
 			printf("\t\"");
 
@@ -70,7 +70,7 @@ static void outputEscape()
 	}
 
 	printf(	"};\n"
-		"#endif // BITCOIN_UNIVALUE_UNIVALUE_ESCAPES_H\n");
+		"#endif // SAMCOIN_UNIVALUE_UNIVALUE_ESCAPES_H\n");
 }
 
 int main (int argc, char *argv[])

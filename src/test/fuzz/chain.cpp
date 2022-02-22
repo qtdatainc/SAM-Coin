@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -21,24 +21,21 @@ FUZZ_TARGET(chain)
 
     const uint256 zero{};
     disk_block_index->phashBlock = &zero;
-    {
-        LOCK(::cs_main);
-        (void)disk_block_index->GetBlockHash();
-        (void)disk_block_index->GetBlockPos();
-        (void)disk_block_index->GetBlockTime();
-        (void)disk_block_index->GetBlockTimeMax();
-        (void)disk_block_index->GetMedianTimePast();
-        (void)disk_block_index->GetUndoPos();
-        (void)disk_block_index->HaveTxsDownloaded();
-        (void)disk_block_index->IsValid();
-        (void)disk_block_index->ToString();
-    }
+    (void)disk_block_index->GetBlockHash();
+    (void)disk_block_index->GetBlockPos();
+    (void)disk_block_index->GetBlockTime();
+    (void)disk_block_index->GetBlockTimeMax();
+    (void)disk_block_index->GetMedianTimePast();
+    (void)disk_block_index->GetUndoPos();
+    (void)disk_block_index->HaveTxsDownloaded();
+    (void)disk_block_index->IsValid();
+    (void)disk_block_index->ToString();
 
     const CBlockHeader block_header = disk_block_index->GetBlockHeader();
     (void)CDiskBlockIndex{*disk_block_index};
     (void)disk_block_index->BuildSkip();
 
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
+    while (fuzzed_data_provider.ConsumeBool()) {
         const BlockStatus block_status = fuzzed_data_provider.PickValueInArray({
             BlockStatus::BLOCK_VALID_UNKNOWN,
             BlockStatus::BLOCK_VALID_RESERVED,
@@ -58,7 +55,7 @@ FUZZ_TARGET(chain)
         if (block_status & ~BLOCK_VALID_MASK) {
             continue;
         }
-        WITH_LOCK(::cs_main, (void)disk_block_index->RaiseValidity(block_status));
+        (void)disk_block_index->RaiseValidity(block_status);
     }
 
     CBlockIndex block_index{block_header};

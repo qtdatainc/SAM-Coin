@@ -1,11 +1,10 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
-#include <test/util/setup_common.h>
 #include <util/system.h>
 
 #include <cstdint>
@@ -13,11 +12,6 @@
 #include <vector>
 
 namespace {
-void initialize_system()
-{
-    static const auto testing_setup = MakeNoLogFileContext<>();
-}
-
 std::string GetArgumentName(const std::string& name)
 {
     size_t idx = name.find('=');
@@ -26,8 +20,9 @@ std::string GetArgumentName(const std::string& name)
     }
     return name.substr(0, idx);
 }
+} // namespace
 
-FUZZ_TARGET_INIT(system, initialize_system)
+FUZZ_TARGET(system)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
     ArgsManager args_manager{};
@@ -36,8 +31,7 @@ FUZZ_TARGET_INIT(system, initialize_system)
         SetupHelpOptions(args_manager);
     }
 
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 3000)
-    {
+    while (fuzzed_data_provider.ConsumeBool()) {
         CallOneOf(
             fuzzed_data_provider,
             [&] {
@@ -102,7 +96,7 @@ FUZZ_TARGET_INIT(system, initialize_system)
     const int64_t i64 = fuzzed_data_provider.ConsumeIntegral<int64_t>();
     const bool b = fuzzed_data_provider.ConsumeBool();
 
-    (void)args_manager.GetIntArg(s1, i64);
+    (void)args_manager.GetArg(s1, i64);
     (void)args_manager.GetArg(s1, s2);
     (void)args_manager.GetArgFlags(s1);
     (void)args_manager.GetArgs(s1);
@@ -119,4 +113,3 @@ FUZZ_TARGET_INIT(system, initialize_system)
 
     (void)HelpRequested(args_manager);
 }
-} // namespace

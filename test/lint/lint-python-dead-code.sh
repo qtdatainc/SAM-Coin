@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021 The Bitcoin Core developers
+# Copyright (c) 2021 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #
@@ -15,8 +15,9 @@ fi
 
 # --min-confidence 100 will only report code that is guaranteed to be unused within the analyzed files.
 # Any value below 100 introduces the risk of false positives, which would create an unacceptable maintenance burden.
-mapfile -t FILES < <(git ls-files -- "*.py")
-if ! vulture --min-confidence 100 "${FILES[@]}"; then
+if ! vulture \
+    --min-confidence 100 \
+    $(git ls-files -- "*.py"); then
     echo "Python dead code detection found some issues"
     exit 1
 fi

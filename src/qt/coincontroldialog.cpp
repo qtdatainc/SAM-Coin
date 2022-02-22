@@ -1,16 +1,16 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <qt/coincontroldialog.h>
 #include <qt/forms/ui_coincontroldialog.h>
 
 #include <qt/addresstablemodel.h>
-#include <qt/bitcoinunits.h>
+#include <qt/samcoinunits.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
@@ -30,9 +30,6 @@
 #include <QIcon>
 #include <QSettings>
 #include <QTreeWidget>
-
-using wallet::CCoinControl;
-using wallet::MIN_CHANGE;
 
 QList<CAmount> CoinControlDialog::payAmounts;
 bool CoinControlDialog::fSubtractFeeFromAmount = false;
@@ -58,7 +55,7 @@ CoinControlDialog::CoinControlDialog(CCoinControl& coin_control, WalletModel* _m
     contextMenu->addAction(tr("&Copy address"), this, &CoinControlDialog::copyAddress);
     contextMenu->addAction(tr("Copy &label"), this, &CoinControlDialog::copyLabel);
     contextMenu->addAction(tr("Copy &amount"), this, &CoinControlDialog::copyAmount);
-    m_copy_transaction_outpoint_action = contextMenu->addAction(tr("Copy transaction &ID and output index"), this, &CoinControlDialog::copyTransactionOutpoint);
+    copyTransactionHashAction = contextMenu->addAction(tr("Copy transaction &ID"), this, &CoinControlDialog::copyTransactionHash);
     contextMenu->addSeparator();
     lockAction = contextMenu->addAction(tr("L&ock unspent"), this, &CoinControlDialog::lockCoin);
     unlockAction = contextMenu->addAction(tr("&Unlock unspent"), this, &CoinControlDialog::unlockCoin);
@@ -183,7 +180,7 @@ void CoinControlDialog::showMenu(const QPoint &point)
         // disable some items (like Copy Transaction ID, lock, unlock) for tree roots in context menu
         if (item->data(COLUMN_ADDRESS, TxHashRole).toString().length() == 64) // transaction hash is 64 characters (this means it is a child node, so it is not a parent node in tree mode)
         {
-            m_copy_transaction_outpoint_action->setEnabled(true);
+            copyTransactionHashAction->setEnabled(true);
             if (model->wallet().isLockedCoin(COutPoint(uint256S(item->data(COLUMN_ADDRESS, TxHashRole).toString().toStdString()), item->data(COLUMN_ADDRESS, VOutRole).toUInt())))
             {
                 lockAction->setEnabled(false);
@@ -197,7 +194,7 @@ void CoinControlDialog::showMenu(const QPoint &point)
         }
         else // this means click on parent node in tree mode -> disable all
         {
-            m_copy_transaction_outpoint_action->setEnabled(false);
+            copyTransactionHashAction->setEnabled(false);
             lockAction->setEnabled(false);
             unlockAction->setEnabled(false);
         }
@@ -210,7 +207,7 @@ void CoinControlDialog::showMenu(const QPoint &point)
 // context menu action: copy amount
 void CoinControlDialog::copyAmount()
 {
-    GUIUtil::setClipboard(BitcoinUnits::removeSpaces(contextMenuItem->text(COLUMN_AMOUNT)));
+    GUIUtil::setClipboard(SamcoinUnits::removeSpaces(contextMenuItem->text(COLUMN_AMOUNT)));
 }
 
 // context menu action: copy label
@@ -231,14 +228,10 @@ void CoinControlDialog::copyAddress()
         GUIUtil::setClipboard(contextMenuItem->text(COLUMN_ADDRESS));
 }
 
-// context menu action: copy transaction id and vout index
-void CoinControlDialog::copyTransactionOutpoint()
+// context menu action: copy transaction id
+void CoinControlDialog::copyTransactionHash()
 {
-    const QString address = contextMenuItem->data(COLUMN_ADDRESS, TxHashRole).toString();
-    const QString vout = contextMenuItem->data(COLUMN_ADDRESS, VOutRole).toString();
-    const QString outpoint = QString("%1:%2").arg(address).arg(vout);
-
-    GUIUtil::setClipboard(outpoint);
+    GUIUtil::setClipboard(contextMenuItem->data(COLUMN_ADDRESS, TxHashRole).toString());
 }
 
 // context menu action: lock coin
@@ -248,7 +241,7 @@ void CoinControlDialog::lockCoin()
         contextMenuItem->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
 
     COutPoint outpt(uint256S(contextMenuItem->data(COLUMN_ADDRESS, TxHashRole).toString().toStdString()), contextMenuItem->data(COLUMN_ADDRESS, VOutRole).toUInt());
-    model->wallet().lockCoin(outpt, /* write_to_db = */ true);
+    model->wallet().lockCoin(outpt);
     contextMenuItem->setDisabled(true);
     contextMenuItem->setIcon(COLUMN_CHECKBOX, platformStyle->SingleColorIcon(":/icons/lock_closed"));
     updateLabelLocked();
@@ -508,7 +501,7 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
     }
 
     // actually update labels
-    int nDisplayUnit = BitcoinUnits::BTC;
+    int nDisplayUnit = SamcoinUnits::SAM;
     if (model && model->getOptionsModel())
         nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
 
@@ -528,12 +521,12 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
 
     // stats
     l1->setText(QString::number(nQuantity));                                 // Quantity
-    l2->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nAmount));        // Amount
-    l3->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nPayFee));        // Fee
-    l4->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nAfterFee));      // After Fee
+    l2->setText(SamcoinUnits::formatWithUnit(nDisplayUnit, nAmount));        // Amount
+    l3->setText(SamcoinUnits::formatWithUnit(nDisplayUnit, nPayFee));        // Fee
+    l4->setText(SamcoinUnits::formatWithUnit(nDisplayUnit, nAfterFee));      // After Fee
     l5->setText(((nBytes > 0) ? ASYMP_UTF8 : "") + QString::number(nBytes));        // Bytes
     l7->setText(fDust ? tr("yes") : tr("no"));                               // Dust
-    l8->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nChange));        // Change
+    l8->setText(SamcoinUnits::formatWithUnit(nDisplayUnit, nChange));        // Change
     if (nPayFee > 0)
     {
         l3->setText(ASYMP_UTF8 + l3->text());
@@ -636,7 +629,7 @@ void CoinControlDialog::updateView()
             {
                 sAddress = QString::fromStdString(EncodeDestination(outputAddress));
 
-                // if listMode or change => show bitcoin address. In tree mode, address is not shown again for direct wallet address outputs
+                // if listMode or change => show samcoin address. In tree mode, address is not shown again for direct wallet address outputs
                 if (!treeMode || (!(sAddress == sWalletAddress)))
                     itemOutput->setText(COLUMN_ADDRESS, sAddress);
             }
@@ -657,7 +650,7 @@ void CoinControlDialog::updateView()
             }
 
             // amount
-            itemOutput->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, out.txout.nValue));
+            itemOutput->setText(COLUMN_AMOUNT, SamcoinUnits::format(nDisplayUnit, out.txout.nValue));
             itemOutput->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)out.txout.nValue)); // padding so that sorting works correctly
 
             // date
@@ -691,7 +684,7 @@ void CoinControlDialog::updateView()
         if (treeMode)
         {
             itemWalletAddress->setText(COLUMN_CHECKBOX, "(" + QString::number(nChildren) + ")");
-            itemWalletAddress->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, nSum));
+            itemWalletAddress->setText(COLUMN_AMOUNT, SamcoinUnits::format(nDisplayUnit, nSum));
             itemWalletAddress->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)nSum));
         }
     }

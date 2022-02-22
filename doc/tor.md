@@ -1,21 +1,21 @@
-# TOR SUPPORT IN BITCOIN
+# TOR SUPPORT IN SAMCOIN
 
-It is possible to run Bitcoin Core as a Tor onion service, and connect to such services.
+It is possible to run Samcoin Core as a Tor onion service, and connect to such services.
 
 The following directions assume you have a Tor proxy running on port 9050. Many distributions default to having a SOCKS proxy listening on port 9050, but others may not. In particular, the Tor Browser Bundle defaults to listening on port 9150. See [Tor Project FAQ:TBBSocksPort](https://www.torproject.org/docs/faq.html.en#TBBSocksPort) for how to properly
 configure Tor.
 
 ## Compatibility
 
-- Starting with version 22.0, Bitcoin Core only supports Tor version 3 hidden
-  services (Tor v3). Tor v2 addresses are ignored by Bitcoin Core and neither
+- Starting with version 22.0, Samcoin Core only supports Tor version 3 hidden
+  services (Tor v3). Tor v2 addresses are ignored by Samcoin Core and neither
   relayed nor stored.
 
 - Tor removed v2 support beginning with version 0.4.6.
 
-## How to see information about your Tor configuration via Bitcoin Core
+## How to see information about your Tor configuration via Samcoin Core
 
-There are several ways to see your local onion address in Bitcoin Core:
+There are several ways to see your local onion address in Samcoin Core:
 - in the debug log (grep for "tor:" or "AddLocal")
 - in the output of RPC `getnetworkinfo` in the "localaddresses" section
 - in the output of the CLI `-netinfo` peer connections dashboard
@@ -23,13 +23,14 @@ There are several ways to see your local onion address in Bitcoin Core:
 You may set the `-debug=tor` config logging option to have additional
 information in the debug log about your Tor configuration.
 
-CLI `-addrinfo` returns the number of addresses known to your node per
-network. This can be useful to see how many onion peers your node knows,
-e.g. for `-onlynet=onion`.
+CLI `-addrinfo` returns the number of addresses known to your node per network
+type, including Tor v2 and v3. This is useful to see how many onion addresses
+are known to your node for `-onlynet=onion` and how many Tor v3 addresses it
+knows when upgrading to Samcoin Core v22.0 and up that supports Tor v3 only.
 
-## 1. Run Bitcoin Core behind a Tor proxy
+## 1. Run Samcoin Core behind a Tor proxy
 
-The first step is running Bitcoin Core behind a Tor proxy. This will already anonymize all
+The first step is running Samcoin Core behind a Tor proxy. This will already anonymize all
 outgoing connections, but more is possible.
 
     -proxy=ip:port  Set the proxy server. If SOCKS5 is selected (default), this proxy
@@ -40,11 +41,9 @@ outgoing connections, but more is possible.
     -onion=ip:port  Set the proxy server to use for Tor onion services. You do not
                     need to set this if it's the same as -proxy. You can use -onion=0
                     to explicitly disable access to onion services.
-                    ------------------------------------------------------------------
                     Note: Only the -proxy option sets the proxy for DNS requests;
                     with -onion they will not route over Tor, so use -proxy if you
                     have privacy concerns.
-                    ------------------------------------------------------------------
 
     -listen         When using -proxy, listening is disabled by default. If you want
                     to manually configure an onion service (see section 3), you'll
@@ -58,30 +57,30 @@ outgoing connections, but more is possible.
     -onlynet=onion  Make outgoing connections only to .onion addresses. Incoming
                     connections are not affected by this option. This option can be
                     specified multiple times to allow multiple network types, e.g.
-                    onlynet=ipv4, onlynet=ipv6, onlynet=onion, onlynet=i2p.
-                    Warning: if you use -onlynet with values other than onion, and
-                    the -onion or -proxy option is set, then outgoing onion
-                    connections will still be made; use -noonion or -onion=0 to
-                    disable outbound onion connections in this case.
+                    ipv4, ipv6 or onion. If you use this option with values other
+                    than onion you *cannot* disable onion connections; outgoing onion
+                    connections will be enabled when you use -proxy or -onion. Use
+                    -noonion or -onion=0 if you want to be sure there are no outbound
+                    onion connections over the default proxy or your defined -proxy.
 
 In a typical situation, this suffices to run behind a Tor proxy:
 
-    ./bitcoind -proxy=127.0.0.1:9050
+    ./samcoind -proxy=127.0.0.1:9050
 
-## 2. Automatically create a Bitcoin Core onion service
+## 2. Automatically create a Samcoin Core onion service
 
-Bitcoin Core makes use of Tor's control socket API to create and destroy
+Samcoin Core makes use of Tor's control socket API to create and destroy
 ephemeral onion services programmatically. This means that if Tor is running and
-proper authentication has been configured, Bitcoin Core automatically creates an
+proper authentication has been configured, Samcoin Core automatically creates an
 onion service to listen on. The goal is to increase the number of available
 onion nodes.
 
-This feature is enabled by default if Bitcoin Core is listening (`-listen`) and
+This feature is enabled by default if Samcoin Core is listening (`-listen`) and
 it requires a Tor connection to work. It can be explicitly disabled with
 `-listenonion=0`. If it is not disabled, it can be configured using the
 `-torcontrol` and `-torpassword` settings.
 
-To see verbose Tor information in the bitcoind debug log, pass `-debug=tor`.
+To see verbose Tor information in the samcoind debug log, pass `-debug=tor`.
 
 ### Control Port
 
@@ -109,20 +108,20 @@ DataDirectoryGroupReadable 1
 ### Authentication
 
 Connecting to Tor's control socket API requires one of two authentication
-methods to be configured: cookie authentication or bitcoind's `-torpassword`
+methods to be configured: cookie authentication or samcoind's `-torpassword`
 configuration option.
 
 #### Cookie authentication
 
-For cookie authentication, the user running bitcoind must have read access to
+For cookie authentication, the user running samcoind must have read access to
 the `CookieAuthFile` specified in the Tor configuration. In some cases this is
 preconfigured and the creation of an onion service is automatic. Don't forget to
-use the `-debug=tor` bitcoind configuration option to enable Tor debug logging.
+use the `-debug=tor` samcoind configuration option to enable Tor debug logging.
 
 If a permissions problem is seen in the debug log, e.g. `tor: Authentication
 cookie /run/tor/control.authcookie could not be opened (check permissions)`, it
 can be resolved by adding both the user running Tor and the user running
-bitcoind to the same Tor group and setting permissions appropriately.
+samcoind to the same Tor group and setting permissions appropriately.
 
 On Debian-derived systems, the Tor group will likely be `debian-tor` and one way
 to verify could be to list the groups and grep for a "tor" group name:
@@ -135,18 +134,18 @@ You can also check the group of the cookie file. On most Linux systems, the Tor
 auth cookie will usually be `/run/tor/control.authcookie`:
 
 ```
-TORGROUP=$(stat -c '%G' /run/tor/control.authcookie)
+stat -c '%G' /run/tor/control.authcookie
 ```
 
 Once you have determined the `${TORGROUP}` and selected the `${USER}` that will
-run bitcoind, run this as root:
+run samcoind, run this as root:
 
 ```
 usermod -a -G ${TORGROUP} ${USER}
 ```
 
 Then restart the computer (or log out) and log in as the `${USER}` that will run
-bitcoind.
+samcoind.
 
 #### `torpassword` authentication
 
@@ -160,22 +159,22 @@ Manual](https://2019.www.torproject.org/docs/tor-manual.html.en) for more
 details).
 
 
-## 3. Manually create a Bitcoin Core onion service
+## 3. Manually create a Samcoin Core onion service
 
 You can also manually configure your node to be reachable from the Tor network.
 Add these lines to your `/etc/tor/torrc` (or equivalent config file):
 
-    HiddenServiceDir /var/lib/tor/bitcoin-service/
+    HiddenServiceDir /var/lib/tor/samcoin-service/
     HiddenServicePort 8333 127.0.0.1:8334
 
 The directory can be different of course, but virtual port numbers should be equal to
-your bitcoind's P2P listen port (8333 by default), and target addresses and ports
+your samcoind's P2P listen port (8333 by default), and target addresses and ports
 should be equal to binding address and port for inbound Tor connections (127.0.0.1:8334 by default).
 
-    -externalip=X   You can tell bitcoin about its publicly reachable addresses using
+    -externalip=X   You can tell samcoin about its publicly reachable addresses using
                     this option, and this can be an onion address. Given the above
                     configuration, you can find your onion address in
-                    /var/lib/tor/bitcoin-service/hostname. For connections
+                    /var/lib/tor/samcoin-service/hostname. For connections
                     coming from unroutable addresses (such as 127.0.0.1, where the
                     Tor proxy typically runs), onion addresses are given
                     preference for your node to advertise itself with.
@@ -197,29 +196,29 @@ should be equal to binding address and port for inbound Tor connections (127.0.0
 
 In a typical situation, where you're only reachable via Tor, this should suffice:
 
-    ./bitcoind -proxy=127.0.0.1:9050 -externalip=7zvj7a2imdgkdbg4f2dryd5rgtrn7upivr5eeij4cicjh65pooxeshid.onion -listen
+    ./samcoind -proxy=127.0.0.1:9050 -externalip=7zvj7a2imdgkdbg4f2dryd5rgtrn7upivr5eeij4cicjh65pooxeshid.onion -listen
 
 (obviously, replace the .onion address with your own). It should be noted that you still
 listen on all devices and another node could establish a clearnet connection, when knowing
 your address. To mitigate this, additionally bind the address of your Tor proxy:
 
-    ./bitcoind ... -bind=127.0.0.1
+    ./samcoind ... -bind=127.0.0.1
 
 If you don't care too much about hiding your node, and want to be reachable on IPv4
 as well, use `discover` instead:
 
-    ./bitcoind ... -discover
+    ./samcoind ... -discover
 
 and open port 8333 on your firewall (or use port mapping, i.e., `-upnp` or `-natpmp`).
 
 If you only want to use Tor to reach .onion addresses, but not use it as a proxy
 for normal IPv4/IPv6 communication, use:
 
-    ./bitcoind -onion=127.0.0.1:9050 -externalip=7zvj7a2imdgkdbg4f2dryd5rgtrn7upivr5eeij4cicjh65pooxeshid.onion -discover
+    ./samcoind -onion=127.0.0.1:9050 -externalip=7zvj7a2imdgkdbg4f2dryd5rgtrn7upivr5eeij4cicjh65pooxeshid.onion -discover
 
 ## 4. Privacy recommendations
 
-- Do not add anything but Bitcoin Core ports to the onion service created in section 3.
+- Do not add anything but Samcoin Core ports to the onion service created in section 3.
   If you run a web service too, create a new onion service for that.
   Otherwise it is trivial to link them, which may reduce privacy. Onion
   services created automatically (as in section 2) always have only one port

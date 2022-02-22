@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -44,7 +44,7 @@ FUZZ_TARGET_INIT(torcontrol, initialize_torcontrol)
     FuzzedDataProvider fuzzed_data_provider{buffer.data(), buffer.size()};
 
     TorController tor_controller;
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
+    while (fuzzed_data_provider.ConsumeBool()) {
         TorControlReply tor_control_reply;
         CallOneOf(
             fuzzed_data_provider,

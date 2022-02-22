@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2021 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -17,10 +17,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-
-using node::AnalyzePSBT;
-using node::PSBTAnalysis;
-using node::PSBTInputAnalysis;
 
 void initialize_psbt()
 {

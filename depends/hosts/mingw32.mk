@@ -1,7 +1,3 @@
-ifneq ($(shell $(SHELL) $(.SHELLFLAGS) "command -v $(host)-g++-posix"),)
-mingw32_CXX := $(host)-g++-posix
-endif
-
 mingw32_CFLAGS=-pipe
 mingw32_CXXFLAGS=$(mingw32_CFLAGS)
 

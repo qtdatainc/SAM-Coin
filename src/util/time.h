@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UTIL_TIME_H
-#define BITCOIN_UTIL_TIME_H
+#ifndef SAMCOIN_UTIL_TIME_H
+#define SAMCOIN_UTIL_TIME_H
 
 #include <compat.h>
 
@@ -89,4 +89,4 @@ struct timeval MillisToTimeval(std::chrono::milliseconds ms);
 /** Sanity check epoch match normal Unix epoch */
 bool ChronoSanityCheck();
 
-#endif // BITCOIN_UTIL_TIME_H
+#endif // SAMCOIN_UTIL_TIME_H

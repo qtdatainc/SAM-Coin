@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2015-2021 The Bitcoin Core developers
+# Copyright (c) 2015-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test p2p permission message.
@@ -18,14 +18,14 @@ from test_framework.script import (
     OP_TRUE,
 )
 from test_framework.test_node import ErrorMatch
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     p2p_port,
 )
 
 
-class P2PPermissionsTests(BitcoinTestFramework):
+class P2PPermissionsTests(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.setup_clean_chain = True
@@ -93,7 +93,8 @@ class P2PPermissionsTests(BitcoinTestFramework):
         self.nodes[1].assert_start_raises_init_error(["-whitebind=noban@127.0.0.1/10"], "Cannot resolve -whitebind address", match=ErrorMatch.PARTIAL_REGEX)
 
     def check_tx_relay(self):
-        block_op_true = self.nodes[0].getblock(self.generatetoaddress(self.nodes[0], 100, ADDRESS_BCRT1_P2WSH_OP_TRUE)[0])
+        block_op_true = self.nodes[0].getblock(self.nodes[0].generatetoaddress(100, ADDRESS_BCRT1_P2WSH_OP_TRUE)[0])
+        self.sync_all()
 
         self.log.debug("Create a connection from a forcerelay peer that rebroadcasts raw txs")
         # A test framework p2p connection is needed to send the raw transaction directly. If a full node was used, it could only
@@ -129,7 +130,7 @@ class P2PPermissionsTests(BitcoinTestFramework):
         tx.vout[0].nValue += 1
         txid = tx.rehash()
         # Send the transaction twice. The first time, it'll be rejected by ATMP because it conflicts
-        # with a mempool transaction. The second time, it'll be in the m_recent_rejects filter.
+        # with a mempool transaction. The second time, it'll be in the recentRejects filter.
         p2p_rebroadcast_wallet.send_txs_and_test(
             [tx],
             self.nodes[1],
@@ -154,9 +155,9 @@ class P2PPermissionsTests(BitcoinTestFramework):
                 raise AssertionError("Expected permissions %r is not granted." % p)
 
     def replaceinconfig(self, nodeid, old, new):
-        with open(self.nodes[nodeid].bitcoinconf, encoding="utf8") as f:
+        with open(self.nodes[nodeid].samcoinconf, encoding="utf8") as f:
             newText = f.read().replace(old, new)
-        with open(self.nodes[nodeid].bitcoinconf, 'w', encoding="utf8") as f:
+        with open(self.nodes[nodeid].samcoinconf, 'w', encoding="utf8") as f:
             f.write(newText)
 
 

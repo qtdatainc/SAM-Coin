@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_OVERVIEWPAGE_H
-#define BITCOIN_QT_OVERVIEWPAGE_H
+#ifndef SAMCOIN_QT_OVERVIEWPAGE_H
+#define SAMCOIN_QT_OVERVIEWPAGE_H
 
 #include <interfaces/wallet.h>
 
@@ -68,4 +68,4 @@ private Q_SLOTS:
     void setMonospacedFont(bool use_embedded_font);
 };
 
-#endif // BITCOIN_QT_OVERVIEWPAGE_H
+#endif // SAMCOIN_QT_OVERVIEWPAGE_H

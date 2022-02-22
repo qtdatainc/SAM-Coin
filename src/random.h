@@ -1,16 +1,16 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_RANDOM_H
-#define BITCOIN_RANDOM_H
+#ifndef SAMCOIN_RANDOM_H
+#define SAMCOIN_RANDOM_H
 
 #include <crypto/chacha20.h>
 #include <crypto/common.h>
 #include <uint256.h>
 
-#include <chrono>
+#include <chrono> // For std::chrono::microseconds
 #include <cstdint>
 #include <limits>
 
@@ -82,18 +82,6 @@ D GetRandomDuration(typename std::common_type<D>::type max) noexcept
 };
 constexpr auto GetRandMicros = GetRandomDuration<std::chrono::microseconds>;
 constexpr auto GetRandMillis = GetRandomDuration<std::chrono::milliseconds>;
-
-/**
- * Return a timestamp in the future sampled from an exponential distribution
- * (https://en.wikipedia.org/wiki/Exponential_distribution). This distribution
- * is memoryless and should be used for repeated network events (e.g. sending a
- * certain type of message) to minimize leaking information to observers.
- *
- * The probability of an event occurring before time x is 1 - e^-(x/a) where a
- * is the average interval between events.
- * */
-std::chrono::microseconds GetExponentialRand(std::chrono::microseconds now, std::chrono::seconds average_interval);
-
 int GetRandInt(int nMax) noexcept;
 uint256 GetRandHash() noexcept;
 
@@ -277,4 +265,4 @@ bool Random_SanityCheck();
  */
 void RandomInit();
 
-#endif // BITCOIN_RANDOM_H
+#endif // SAMCOIN_RANDOM_H

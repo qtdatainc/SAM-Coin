@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <mapport.h>
@@ -14,7 +14,6 @@
 #include <netaddress.h>
 #include <netbase.h>
 #include <threadinterrupt.h>
-#include <util/syscall_sandbox.h>
 #include <util/system.h>
 #include <util/thread.h>
 
@@ -223,7 +222,6 @@ static bool ProcessUpnp()
 
 static void ThreadMapPort()
 {
-    SetSyscallSandboxPolicy(SyscallSandboxPolicy::INITIALIZATION_MAP_PORT);
     bool ok;
     do {
         ok = false;

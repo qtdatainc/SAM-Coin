@@ -1,10 +1,11 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_OPTIONSMODEL_H
-#define BITCOIN_QT_OPTIONSMODEL_H
+#ifndef SAMCOIN_QT_OPTIONSMODEL_H
+#define SAMCOIN_QT_OPTIONSMODEL_H
 
+#include <amount.h>
 #include <cstdint>
 #include <qt/guiconstants.h>
 
@@ -29,7 +30,7 @@ static inline int PruneMiBtoGB(int64_t mib) { return (mib * 1024 * 1024 + GB_BYT
  */
 static inline int64_t PruneGBtoMiB(int gb) { return gb * GB_BYTES / 1024 / 1024; }
 
-/** Interface from Qt to configuration data structure for Bitcoin client.
+/** Interface from Qt to configuration data structure for Samcoin client.
    To Qt, the options are presented as a list with the different options
    laid out vertically.
    This can be changed to a tree once the settings become sufficiently
@@ -55,12 +56,11 @@ public:
         ProxyUseTor,            // bool
         ProxyIPTor,             // QString
         ProxyPortTor,           // int
-        DisplayUnit,            // BitcoinUnits::Unit
+        DisplayUnit,            // SamcoinUnits::Unit
         ThirdPartyTxUrls,       // QString
         Language,               // QString
         UseEmbeddedMonospacedFont, // bool
         CoinControlFeatures,    // bool
-        SubFeeFromAmount,       // bool
         ThreadsScriptVerif,     // int
         Prune,                  // bool
         PruneSize,              // int
@@ -68,8 +68,6 @@ public:
         ExternalSignerPath,     // QString
         SpendZeroConfChange,    // bool
         Listen,                 // bool
-        Server,                 // bool
-        EnablePSBTControls,     // bool
         OptionIDRowCount,
     };
 
@@ -90,8 +88,6 @@ public:
     QString getThirdPartyTxUrls() const { return strThirdPartyTxUrls; }
     bool getUseEmbeddedMonospacedFont() const { return m_use_embedded_monospaced_font; }
     bool getCoinControlFeatures() const { return fCoinControlFeatures; }
-    bool getSubFeeFromAmount() const { return m_sub_fee_from_amount; }
-    bool getEnablePSBTControls() const { return m_enable_psbt_controls; }
     const QString& getOverriddenByCommandLine() { return strOverriddenByCommandLine; }
 
     /* Explicit setters */
@@ -116,8 +112,6 @@ private:
     QString strThirdPartyTxUrls;
     bool m_use_embedded_monospaced_font;
     bool fCoinControlFeatures;
-    bool m_sub_fee_from_amount;
-    bool m_enable_psbt_controls;
     /* settings that were overridden by command-line */
     QString strOverriddenByCommandLine;
 
@@ -133,4 +127,4 @@ Q_SIGNALS:
     void useEmbeddedMonospacedFontChanged(bool);
 };
 
-#endif // BITCOIN_QT_OPTIONSMODEL_H
+#endif // SAMCOIN_QT_OPTIONSMODEL_H

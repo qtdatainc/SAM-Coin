@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,14 +10,11 @@
 #include <util/system.h>
 #include <util/time.h>
 
-#include <memory>
+#include <codecvt>
+#include <cwchar>
+#include <locale>
 #include <stdexcept>
 #include <string>
-
-#ifdef WIN32
-#include <codecvt>
-#include <locale>
-#endif
 
 #ifdef USE_POLL
 #include <poll.h>
@@ -72,32 +69,6 @@ ssize_t Sock::Recv(void* buf, size_t len, int flags) const
 int Sock::Connect(const sockaddr* addr, socklen_t addr_len) const
 {
     return connect(m_socket, addr, addr_len);
-}
-
-std::unique_ptr<Sock> Sock::Accept(sockaddr* addr, socklen_t* addr_len) const
-{
-#ifdef WIN32
-    static constexpr auto ERR = INVALID_SOCKET;
-#else
-    static constexpr auto ERR = SOCKET_ERROR;
-#endif
-
-    std::unique_ptr<Sock> sock;
-
-    const auto socket = accept(m_socket, addr, addr_len);
-    if (socket != ERR) {
-        try {
-            sock = std::make_unique<Sock>(socket);
-        } catch (const std::exception&) {
-#ifdef WIN32
-            closesocket(socket);
-#else
-            close(socket);
-#endif
-        }
-    }
-
-    return sock;
 }
 
 int Sock::GetSockOpt(int level, int opt_name, void* opt_val, socklen_t* opt_len) const

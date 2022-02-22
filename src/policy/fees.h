@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
-#ifndef BITCOIN_POLICY_FEES_H
-#define BITCOIN_POLICY_FEES_H
+#ifndef SAMCOIN_POLICY_FEES_H
+#define SAMCOIN_POLICY_FEES_H
 
-#include <consensus/amount.h>
+#include <amount.h>
 #include <policy/feerate.h>
 #include <uint256.h>
 #include <random.h>
@@ -186,59 +186,47 @@ public:
 
     /** Process all the transactions that have been included in a block */
     void processBlock(unsigned int nBlockHeight,
-                      std::vector<const CTxMemPoolEntry*>& entries)
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+                      std::vector<const CTxMemPoolEntry*>& entries);
 
     /** Process a transaction accepted to the mempool*/
-    void processTransaction(const CTxMemPoolEntry& entry, bool validFeeEstimate)
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    void processTransaction(const CTxMemPoolEntry& entry, bool validFeeEstimate);
 
     /** Remove a transaction from the mempool tracking stats*/
-    bool removeTx(uint256 hash, bool inBlock)
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    bool removeTx(uint256 hash, bool inBlock);
 
     /** DEPRECATED. Return a feerate estimate */
-    CFeeRate estimateFee(int confTarget) const
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    CFeeRate estimateFee(int confTarget) const;
 
     /** Estimate feerate needed to get be included in a block within confTarget
      *  blocks. If no answer can be given at confTarget, return an estimate at
      *  the closest target where one can be given.  'conservative' estimates are
      *  valid over longer time horizons also.
      */
-    CFeeRate estimateSmartFee(int confTarget, FeeCalculation *feeCalc, bool conservative) const
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    CFeeRate estimateSmartFee(int confTarget, FeeCalculation *feeCalc, bool conservative) const;
 
     /** Return a specific fee estimate calculation with a given success
      * threshold and time horizon, and optionally return detailed data about
      * calculation
      */
-    CFeeRate estimateRawFee(int confTarget, double successThreshold, FeeEstimateHorizon horizon,
-                            EstimationResult* result = nullptr) const
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    CFeeRate estimateRawFee(int confTarget, double successThreshold, FeeEstimateHorizon horizon, EstimationResult *result = nullptr) const;
 
     /** Write estimation data to a file */
-    bool Write(CAutoFile& fileout) const
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    bool Write(CAutoFile& fileout) const;
 
     /** Read estimation data from a file */
-    bool Read(CAutoFile& filein)
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    bool Read(CAutoFile& filein);
 
     /** Empty mempool transactions on shutdown to record failure to confirm for txs still in mempool */
-    void FlushUnconfirmed()
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    void FlushUnconfirmed();
 
     /** Calculation of highest target that estimates are tracked for */
-    unsigned int HighestTargetTracked(FeeEstimateHorizon horizon) const
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    unsigned int HighestTargetTracked(FeeEstimateHorizon horizon) const;
 
     /** Drop still unconfirmed transactions and record current estimations, if the fee estimation file is present. */
-    void Flush()
-        EXCLUSIVE_LOCKS_REQUIRED(!m_cs_fee_estimator);
+    void Flush();
 
 private:
-    mutable Mutex m_cs_fee_estimator;
+    mutable RecursiveMutex m_cs_fee_estimator;
 
     unsigned int nBestSeenHeight GUARDED_BY(m_cs_fee_estimator);
     unsigned int firstRecordedHeight GUARDED_BY(m_cs_fee_estimator);
@@ -279,10 +267,6 @@ private:
     unsigned int HistoricalBlockSpan() const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
     /** Calculation of highest target that reasonable estimate can be provided for */
     unsigned int MaxUsableEstimate() const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
-
-    /** A non-thread-safe helper for the removeTx function */
-    bool _removeTx(const uint256& hash, bool inBlock)
-        EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
 };
 
 class FeeFilterRounder
@@ -307,4 +291,4 @@ private:
     FastRandomContext insecure_rand;
 };
 
-#endif // BITCOIN_POLICY_FEES_H
+#endif // SAMCOIN_POLICY_FEES_H

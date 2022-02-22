@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -257,7 +257,7 @@ TransactionTableModel::TransactionTableModel(const PlatformStyle *_platformStyle
 {
     subscribeToCoreSignals();
 
-    columns << QString() << QString() << tr("Date") << tr("Type") << tr("Label") << BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
+    columns << QString() << QString() << tr("Date") << tr("Type") << tr("Label") << SamcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
     priv->refreshWallet(walletModel->wallet());
 
     connect(walletModel->getOptionsModel(), &OptionsModel::displayUnitChanged, this, &TransactionTableModel::updateDisplayUnit);
@@ -272,7 +272,7 @@ TransactionTableModel::~TransactionTableModel()
 /** Updates the column title to "Amount (DisplayUnit)" and emits headerDataChanged() signal for table headers to react. */
 void TransactionTableModel::updateAmountColumnTitle()
 {
-    columns[Amount] = BitcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
+    columns[Amount] = SamcoinUnits::getAmountColumnTitle(walletModel->getOptionsModel()->getDisplayUnit());
     Q_EMIT headerDataChanged(Qt::Horizontal,Amount,Amount);
 }
 
@@ -316,6 +316,12 @@ QString TransactionTableModel::formatTxStatus(const TransactionRecord *wtx) cons
 
     switch(wtx->status.status)
     {
+    case TransactionStatus::OpenUntilBlock:
+        status = tr("Open for %n more block(s)","",wtx->status.open_for);
+        break;
+    case TransactionStatus::OpenUntilDate:
+        status = tr("Open until %1").arg(GUIUtil::dateTimeStr(wtx->status.open_for));
+        break;
     case TransactionStatus::Unconfirmed:
         status = tr("Unconfirmed");
         break;
@@ -452,9 +458,9 @@ QVariant TransactionTableModel::addressColor(const TransactionRecord *wtx) const
     return QVariant();
 }
 
-QString TransactionTableModel::formatTxAmount(const TransactionRecord *wtx, bool showUnconfirmed, BitcoinUnits::SeparatorStyle separators) const
+QString TransactionTableModel::formatTxAmount(const TransactionRecord *wtx, bool showUnconfirmed, SamcoinUnits::SeparatorStyle separators) const
 {
-    QString str = BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), wtx->credit + wtx->debit, false, separators);
+    QString str = SamcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), wtx->credit + wtx->debit, false, separators);
     if(showUnconfirmed)
     {
         if(!wtx->status.countsForBalance)
@@ -469,6 +475,9 @@ QVariant TransactionTableModel::txStatusDecoration(const TransactionRecord *wtx)
 {
     switch(wtx->status.status)
     {
+    case TransactionStatus::OpenUntilBlock:
+    case TransactionStatus::OpenUntilDate:
+        return COLOR_TX_STATUS_OPENUNTILDATE;
     case TransactionStatus::Unconfirmed:
         return QIcon(":/icons/transaction_0");
     case TransactionStatus::Abandoned:
@@ -554,7 +563,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         case ToAddress:
             return formatTxToAddress(rec, false);
         case Amount:
-            return formatTxAmount(rec, true, BitcoinUnits::SeparatorStyle::ALWAYS);
+            return formatTxAmount(rec, true, SamcoinUnits::SeparatorStyle::ALWAYS);
         } // no default case, so the compiler can warn about missing cases
         assert(false);
     case Qt::EditRole:
@@ -601,7 +610,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
     case TypeRole:
         return rec->type;
     case DateRole:
-        return QDateTime::fromSecsSinceEpoch(rec->time);
+        return QDateTime::fromTime_t(static_cast<uint>(rec->time));
     case WatchonlyRole:
         return rec->involvesWatchAddress;
     case WatchonlyDecorationRole:
@@ -621,7 +630,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
     case TxPlainTextRole:
         {
             QString details;
-            QDateTime date = QDateTime::fromSecsSinceEpoch(rec->time);
+            QDateTime date = QDateTime::fromTime_t(static_cast<uint>(rec->time));
             QString txLabel = walletModel->getAddressTableModel()->labelForAddress(QString::fromStdString(rec->address));
 
             details.append(date.toString("M/d/yy HH:mm"));
@@ -643,14 +652,14 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
                 details.append(QString::fromStdString(rec->address));
                 details.append(" ");
             }
-            details.append(formatTxAmount(rec, false, BitcoinUnits::SeparatorStyle::NEVER));
+            details.append(formatTxAmount(rec, false, SamcoinUnits::SeparatorStyle::NEVER));
             return details;
         }
     case ConfirmedRole:
         return rec->status.status == TransactionStatus::Status::Confirming || rec->status.status == TransactionStatus::Status::Confirmed;
     case FormattedAmountRole:
         // Used for copy/export, so don't include separators
-        return formatTxAmount(rec, false, BitcoinUnits::SeparatorStyle::NEVER);
+        return formatTxAmount(rec, false, SamcoinUnits::SeparatorStyle::NEVER);
     case StatusRole:
         return rec->status.status;
     }

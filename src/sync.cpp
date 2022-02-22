@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <sync.h>
@@ -22,6 +22,17 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#ifdef DEBUG_LOCKCONTENTION
+#if !defined(HAVE_THREAD_LOCAL)
+static_assert(false, "thread_local is not supported");
+#endif
+void PrintLockContention(const char* pszName, const char* pszFile, int nLine)
+{
+    LogPrintf("LOCKCONTENTION: %s\n", pszName);
+    LogPrintf("Locker: %s:%d\n", pszFile, nLine);
+}
+#endif /* DEBUG_LOCKCONTENTION */
 
 #ifdef DEBUG_LOCKORDER
 //
@@ -97,29 +108,27 @@ static void potential_deadlock_detected(const LockPair& mismatch, const LockStac
     LogPrintf("POTENTIAL DEADLOCK DETECTED\n");
     LogPrintf("Previous lock order was:\n");
     for (const LockStackItem& i : s1) {
-        std::string prefix{};
         if (i.first == mismatch.first) {
-            prefix = " (1)";
+            LogPrintf(" (1)"); /* Continued */
         }
         if (i.first == mismatch.second) {
-            prefix = " (2)";
+            LogPrintf(" (2)"); /* Continued */
         }
-        LogPrintf("%s %s\n", prefix, i.second.ToString());
+        LogPrintf(" %s\n", i.second.ToString());
     }
 
     std::string mutex_a, mutex_b;
     LogPrintf("Current lock order is:\n");
     for (const LockStackItem& i : s2) {
-        std::string prefix{};
         if (i.first == mismatch.first) {
-            prefix = " (1)";
+            LogPrintf(" (1)"); /* Continued */
             mutex_a = i.second.Name();
         }
         if (i.first == mismatch.second) {
-            prefix = " (2)";
+            LogPrintf(" (2)"); /* Continued */
             mutex_b = i.second.Name();
         }
-        LogPrintf("%s %s\n", prefix, i.second.ToString());
+        LogPrintf(" %s\n", i.second.ToString());
     }
     if (g_debug_lockorder_abort) {
         tfm::format(std::cerr, "Assertion failed: detected inconsistent lock order for %s, details in debug log.\n", s2.back().second.ToString());
@@ -133,11 +142,10 @@ static void double_lock_detected(const void* mutex, const LockStack& lock_stack)
     LogPrintf("DOUBLE LOCK DETECTED\n");
     LogPrintf("Lock order:\n");
     for (const LockStackItem& i : lock_stack) {
-        std::string prefix{};
         if (i.first == mutex) {
-            prefix = " (*)";
+            LogPrintf(" (*)"); /* Continued */
         }
-        LogPrintf("%s %s\n", prefix, i.second.ToString());
+        LogPrintf(" %s\n", i.second.ToString());
     }
     if (g_debug_lockorder_abort) {
         tfm::format(std::cerr,

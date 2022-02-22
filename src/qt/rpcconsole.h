@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_RPCCONSOLE_H
-#define BITCOIN_QT_RPCCONSOLE_H
+#ifndef SAMCOIN_QT_RPCCONSOLE_H
+#define SAMCOIN_QT_RPCCONSOLE_H
 
 #include <qt/guiutil.h>
 #include <qt/peertablemodel.h>
@@ -34,7 +34,7 @@ class QMenu;
 class QItemSelection;
 QT_END_NAMESPACE
 
-/** Local Bitcoin RPC console. */
+/** Local Samcoin RPC console. */
 class RPCConsole: public QWidget
 {
     Q_OBJECT
@@ -175,13 +175,12 @@ private:
     void updateNetworkState();
 
     /** Helper for the output of a time duration field. Inputs are UNIX epoch times. */
-    QString TimeDurationField(std::chrono::seconds time_now, std::chrono::seconds time_at_event) const
-    {
-        return time_at_event.count() ? GUIUtil::formatDurationStr(time_now - time_at_event) : tr("Never");
+    QString TimeDurationField(uint64_t time_now, uint64_t time_at_event) const {
+        return time_at_event ? GUIUtil::formatDurationStr(time_now - time_at_event) : tr("Never");
     }
 
 private Q_SLOTS:
     void updateAlerts(const QString& warnings);
 };
 
-#endif // BITCOIN_QT_RPCCONSOLE_H
+#endif // SAMCOIN_QT_RPCCONSOLE_H

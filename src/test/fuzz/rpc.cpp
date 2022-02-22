@@ -1,4 +1,4 @@
-// Copyright (c) 2021 The Bitcoin Core developers
+// Copyright (c) 2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -41,17 +41,13 @@ struct RPCFuzzTestingSetup : public TestingSetup {
     {
     }
 
-    void CallRPC(const std::string& rpc_method, const std::vector<std::string>& arguments)
+    UniValue CallRPC(const std::string& rpc_method, const std::vector<std::string>& arguments)
     {
         JSONRPCRequest request;
         request.context = &m_node;
         request.strMethod = rpc_method;
-        try {
-            request.params = RPCConvertValues(rpc_method, arguments);
-        } catch (const std::runtime_error&) {
-            return;
-        }
-        tableRPC.execute(request);
+        request.params = RPCConvertValues(rpc_method, arguments);
+        return tableRPC.execute(request);
     }
 
     std::vector<std::string> GetRPCCommands() const
@@ -70,7 +66,7 @@ const std::vector<std::string> RPC_COMMANDS_NOT_SAFE_FOR_FUZZING{
     "addconnection",  // avoid DNS lookups
     "addnode",        // avoid DNS lookups
     "addpeeraddress", // avoid DNS lookups
-    "analyzepsbt",    // avoid signed integer overflow in CFeeRate::GetFee(unsigned long) (https://github.com/bitcoin/bitcoin/issues/20607)
+    "analyzepsbt",    // avoid signed integer overflow in CFeeRate::GetFee(unsigned long) (https://github.com/samcoin/samcoin/issues/20607)
     "dumptxoutset",   // avoid writing to disk
     "dumpwallet", // avoid writing to disk
     "echoipc",              // avoid assertion failure (Assertion `"EnsureAnyNodeContext(request.context).init" && check' failed.)
@@ -79,7 +75,7 @@ const std::vector<std::string> RPC_COMMANDS_NOT_SAFE_FOR_FUZZING{
     "gettxoutproof",        // avoid prohibitively slow execution
     "importwallet", // avoid reading from disk
     "loadwallet",   // avoid reading from disk
-    "prioritisetransaction", // avoid signed integer overflow in CTxMemPool::PrioritiseTransaction(uint256 const&, long const&) (https://github.com/bitcoin/bitcoin/issues/20626)
+    "prioritisetransaction", // avoid signed integer overflow in CTxMemPool::PrioritiseTransaction(uint256 const&, long const&) (https://github.com/samcoin/samcoin/issues/20626)
     "savemempool",           // disabled as a precautionary measure: may take a file path argument in the future
     "setban",                // avoid DNS lookups
     "stop",                  // avoid shutdown state
@@ -114,13 +110,11 @@ const std::vector<std::string> RPC_COMMANDS_SAFE_FOR_FUZZING{
     "getblockfilter",
     "getblockhash",
     "getblockheader",
-    "getblockfrompeer", // when no peers are connected, no p2p message is sent
     "getblockstats",
     "getblocktemplate",
     "getchaintips",
     "getchaintxstats",
     "getconnectioncount",
-    "getdeploymentinfo",
     "getdescriptorinfo",
     "getdifficulty",
     "getindexinfo",
@@ -272,7 +266,7 @@ std::string ConsumeScalarRPCArgument(FuzzedDataProvider& fuzzed_data_provider)
             }
             CDataStream data_stream{SER_NETWORK, PROTOCOL_VERSION};
             data_stream << *opt_psbt;
-            r = EncodeBase64(data_stream);
+            r = EncodeBase64({data_stream.begin(), data_stream.end()});
         },
         [&] {
             // base58 encoded key
@@ -300,7 +294,7 @@ std::string ConsumeScalarRPCArgument(FuzzedDataProvider& fuzzed_data_provider)
 std::string ConsumeArrayRPCArgument(FuzzedDataProvider& fuzzed_data_provider)
 {
     std::vector<std::string> scalar_arguments;
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 100) {
+    while (fuzzed_data_provider.ConsumeBool()) {
         scalar_arguments.push_back(ConsumeScalarRPCArgument(fuzzed_data_provider));
     }
     return "[\"" + Join(scalar_arguments, "\",\"") + "\"]";
@@ -354,18 +348,12 @@ FUZZ_TARGET_INIT(rpc, initialize_rpc)
         return;
     }
     std::vector<std::string> arguments;
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 100) {
+    while (fuzzed_data_provider.ConsumeBool()) {
         arguments.push_back(ConsumeRPCArgument(fuzzed_data_provider));
     }
     try {
         rpc_testing_setup->CallRPC(rpc_command, arguments);
-    } catch (const UniValue& json_rpc_error) {
-        const std::string error_msg{find_value(json_rpc_error, "message").get_str()};
-        // Once c++20 is allowed, starts_with can be used.
-        // if (error_msg.starts_with("Internal bug detected")) {
-        if (0 == error_msg.rfind("Internal bug detected", 0)) {
-            // Only allow the intentional internal bug
-            assert(error_msg.find("trigger_internal_bug") != std::string::npos);
-        }
+    } catch (const UniValue&) {
+    } catch (const std::runtime_error&) {
     }
 }

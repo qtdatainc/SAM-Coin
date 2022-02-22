@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2021 The Bitcoin Core developers
+# Copyright (c) 2014-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the importprunedfunds and removeprunedfunds RPCs."""
@@ -8,14 +8,14 @@ from decimal import Decimal
 from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.address import key_to_p2wpkh
 from test_framework.key import ECKey
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
 from test_framework.wallet_util import bytes_to_wif
 
-class ImportPrunedFundsTest(BitcoinTestFramework):
+class ImportPrunedFundsTest(SamcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
@@ -25,7 +25,9 @@ class ImportPrunedFundsTest(BitcoinTestFramework):
 
     def run_test(self):
         self.log.info("Mining blocks...")
-        self.generate(self.nodes[0], COINBASE_MATURITY + 1)
+        self.nodes[0].generate(COINBASE_MATURITY + 1)
+
+        self.sync_all()
 
         # address
         address1 = self.nodes[0].getnewaddress()
@@ -62,17 +64,17 @@ class ImportPrunedFundsTest(BitcoinTestFramework):
 
         # Send funds to self
         txnid1 = self.nodes[0].sendtoaddress(address1, 0.1)
-        self.generate(self.nodes[0], 1)
+        self.nodes[0].generate(1)
         rawtxn1 = self.nodes[0].gettransaction(txnid1)['hex']
         proof1 = self.nodes[0].gettxoutproof([txnid1])
 
         txnid2 = self.nodes[0].sendtoaddress(address2, 0.05)
-        self.generate(self.nodes[0], 1)
+        self.nodes[0].generate(1)
         rawtxn2 = self.nodes[0].gettransaction(txnid2)['hex']
         proof2 = self.nodes[0].gettxoutproof([txnid2])
 
         txnid3 = self.nodes[0].sendtoaddress(address3, 0.025)
-        self.generate(self.nodes[0], 1)
+        self.nodes[0].generate(1)
         rawtxn3 = self.nodes[0].gettransaction(txnid3)['hex']
         proof3 = self.nodes[0].gettxoutproof([txnid3])
 

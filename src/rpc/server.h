@@ -1,11 +1,12 @@
 // Copyright (c) 2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_RPC_SERVER_H
-#define BITCOIN_RPC_SERVER_H
+#ifndef SAMCOIN_RPC_SERVER_H
+#define SAMCOIN_RPC_SERVER_H
 
+#include <amount.h>
 #include <rpc/request.h>
 #include <rpc/util.h>
 
@@ -177,4 +178,4 @@ std::string JSONRPCExecBatch(const JSONRPCRequest& jreq, const UniValue& vReq);
 // Retrieves any serialization flags requested in command line argument
 int RPCSerializationFlags();
 
-#endif // BITCOIN_RPC_SERVER_H
+#endif // SAMCOIN_RPC_SERVER_H

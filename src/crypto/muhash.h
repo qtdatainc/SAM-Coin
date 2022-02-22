@@ -1,12 +1,12 @@
-// Copyright (c) 2017-2021 The Bitcoin Core developers
+// Copyright (c) 2017-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_CRYPTO_MUHASH_H
-#define BITCOIN_CRYPTO_MUHASH_H
+#ifndef SAMCOIN_CRYPTO_MUHASH_H
+#define SAMCOIN_CRYPTO_MUHASH_H
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <serialize.h>
@@ -24,7 +24,7 @@ private:
 public:
     static constexpr size_t BYTE_SIZE = 384;
 
-#ifdef __SIZEOF_INT128__
+#ifdef HAVE___INT128
     typedef unsigned __int128 double_limb_t;
     typedef uint64_t limb_t;
     static constexpr int LIMBS = 48;
@@ -89,7 +89,7 @@ public:
  * is intended to represent a set of elements.
  *
  * See also https://cseweb.ucsd.edu/~mihir/papers/inchash.pdf and
- * https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2017-May/014337.html.
+ * https://lists.linuxfoundation.org/pipermail/samcoin-dev/2017-May/014337.html.
  */
 class MuHash3072
 {
@@ -128,4 +128,4 @@ public:
     }
 };
 
-#endif // BITCOIN_CRYPTO_MUHASH_H
+#endif // SAMCOIN_CRYPTO_MUHASH_H

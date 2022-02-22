@@ -1,9 +1,9 @@
-// Copyright (c) 2018-2021 The Bitcoin Core developers
+// Copyright (c) 2018-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_INTERFACES_CHAIN_H
-#define BITCOIN_INTERFACES_CHAIN_H
+#ifndef SAMCOIN_INTERFACES_CHAIN_H
+#define SAMCOIN_INTERFACES_CHAIN_H
 
 #include <primitives/transaction.h> // For CTransactionRef
 #include <util/settings.h>          // For util::SettingsValue
@@ -28,18 +28,14 @@ enum class RBFTransactionState;
 struct bilingual_str;
 struct CBlockLocator;
 struct FeeCalculation;
-namespace node {
 struct NodeContext;
-} // namespace node
 
 namespace interfaces {
 
 class Handler;
 class Wallet;
 
-//! Helper for findBlock to selectively return pieces of block data. If block is
-//! found, data will be returned by setting specified output variables. If block
-//! is not found, output variables will keep their previous values.
+//! Helper for findBlock to selectively return pieces of block data.
 class FoundBlock
 {
 public:
@@ -64,7 +60,6 @@ public:
     bool* m_in_active_chain = nullptr;
     const FoundBlock* m_next_block = nullptr;
     CBlock* m_data = nullptr;
-    mutable bool found = false;
 };
 
 //! Interface giving clients (wallet processes, maybe other analysis tools in
@@ -72,13 +67,13 @@ public:
 //! estimate fees, and submit transactions.
 //!
 //! TODO: Current chain methods are too low level, exposing too much of the
-//! internal workings of the bitcoin node, and not being very convenient to use.
+//! internal workings of the samcoin node, and not being very convenient to use.
 //! Chain methods should be cleaned up and simplified over time. Examples:
 //!
 //! * The initMessages() and showProgress() methods which the wallet uses to send
 //!   notifications to the GUI should go away when GUI and wallet can directly
 //!   communicate with each other without going through the node
-//!   (https://github.com/bitcoin/bitcoin/pull/15288#discussion_r253321096).
+//!   (https://github.com/samcoin/samcoin/pull/15288#discussion_r253321096).
 //!
 //! * The handleRpc, registerRpcs, rpcEnableDeprecated methods and other RPC
 //!   methods can go away if wallets listen for HTTP requests on their own
@@ -90,7 +85,7 @@ public:
 //!
 //! * `guessVerificationProgress` and similar methods can go away if rescan
 //!   logic moves out of the wallet, and the wallet just requests scans from the
-//!   node (https://github.com/bitcoin/bitcoin/issues/11756)
+//!   node (https://github.com/samcoin/samcoin/issues/11756)
 class Chain
 {
 public:
@@ -115,6 +110,9 @@ public:
     //! which will either be the original block used to create the locator,
     //! or one of its ancestors.
     virtual std::optional<int> findLocatorFork(const CBlockLocator& locator) = 0;
+
+    //! Check if transaction will be final given chain height current time.
+    virtual bool checkFinalTx(const CTransaction& tx) = 0;
 
     //! Return whether node has the block and optionally return block metadata
     //! or contents.
@@ -176,7 +174,7 @@ public:
         std::string& err_string) = 0;
 
     //! Calculate mempool ancestor and descendant counts for the given transaction.
-    virtual void getTransactionAncestry(const uint256& txid, size_t& ancestors, size_t& descendants, size_t* ancestorsize = nullptr, CAmount* ancestorfees = nullptr) = 0;
+    virtual void getTransactionAncestry(const uint256& txid, size_t& ancestors, size_t& descendants) = 0;
 
     //! Get the node's package limits.
     //! Currently only returns the ancestor and descendant count limits, but could be enhanced to
@@ -215,6 +213,9 @@ public:
 
     //! Check if shutdown requested.
     virtual bool shutdownRequested() = 0;
+
+    //! Get adjusted time.
+    virtual int64_t getAdjustedTime() = 0;
 
     //! Send init message.
     virtual void initMessage(const std::string& message) = 0;
@@ -261,18 +262,11 @@ public:
     //! Current RPC serialization flags.
     virtual int rpcSerializationFlags() = 0;
 
-    //! Get settings value.
-    virtual util::SettingsValue getSetting(const std::string& arg) = 0;
-
-    //! Get list of settings values.
-    virtual std::vector<util::SettingsValue> getSettingsList(const std::string& arg) = 0;
-
     //! Return <datadir>/settings.json setting value.
     virtual util::SettingsValue getRwSetting(const std::string& name) = 0;
 
-    //! Write a setting to <datadir>/settings.json. Optionally just update the
-    //! setting in memory and do not write the file.
-    virtual bool updateRwSetting(const std::string& name, const util::SettingsValue& value, bool write=true) = 0;
+    //! Write a setting to <datadir>/settings.json.
+    virtual bool updateRwSetting(const std::string& name, const util::SettingsValue& value) = 0;
 
     //! Synchronously send transactionAddedToMempool notifications about all
     //! current mempool transactions to the specified handler and return after
@@ -283,6 +277,9 @@ public:
     //! to be prepared to handle this by ignoring notifications about unknown
     //! removed transactions and already added new transactions.
     virtual void requestMempoolTransactions(Notifications& notifications) = 0;
+
+    //! Check if Taproot has activated
+    virtual bool isTaprootActive() const = 0;
 };
 
 //! Interface to let node manage chain clients (wallets, or maybe tools for
@@ -315,8 +312,8 @@ public:
 };
 
 //! Return implementation of Chain interface.
-std::unique_ptr<Chain> MakeChain(node::NodeContext& node);
+std::unique_ptr<Chain> MakeChain(NodeContext& node);
 
 } // namespace interfaces
 
-#endif // BITCOIN_INTERFACES_CHAIN_H
+#endif // SAMCOIN_INTERFACES_CHAIN_H

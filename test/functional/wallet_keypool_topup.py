@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Bitcoin Core developers
+# Copyright (c) 2017-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test HD Wallet keypool restore function.
@@ -14,13 +14,13 @@ import os
 import shutil
 
 from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
 )
 
 
-class KeypoolRestoreTest(BitcoinTestFramework):
+class KeypoolRestoreTest(SamcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 4
@@ -32,7 +32,7 @@ class KeypoolRestoreTest(BitcoinTestFramework):
     def run_test(self):
         wallet_path = os.path.join(self.nodes[1].datadir, self.chain, "wallets", self.default_wallet_name, self.wallet_data_filename)
         wallet_backup_path = os.path.join(self.nodes[1].datadir, "wallet.bak")
-        self.generate(self.nodes[0], COINBASE_MATURITY + 1)
+        self.nodes[0].generate(COINBASE_MATURITY + 1)
 
         self.log.info("Make backup of wallet")
         self.stop_node(1)
@@ -63,9 +63,10 @@ class KeypoolRestoreTest(BitcoinTestFramework):
 
             self.log.info("Send funds to wallet")
             self.nodes[0].sendtoaddress(addr_oldpool, 10)
-            self.generate(self.nodes[0], 1)
+            self.nodes[0].generate(1)
             self.nodes[0].sendtoaddress(addr_extpool, 5)
-            self.generate(self.nodes[0], 1)
+            self.nodes[0].generate(1)
+            self.sync_blocks()
 
             self.log.info("Restart node with wallet backup")
             self.stop_node(idx)

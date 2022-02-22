@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_WALLET_BDB_H
-#define BITCOIN_WALLET_BDB_H
+#ifndef SAMCOIN_WALLET_BDB_H
+#define SAMCOIN_WALLET_BDB_H
 
 #include <clientversion.h>
 #include <fs.h>
@@ -31,7 +31,6 @@
 
 struct bilingual_str;
 
-namespace wallet {
 static const unsigned int DEFAULT_WALLET_DBLOGSIZE = 100;
 static const bool DEFAULT_WALLET_PRIVDB = true;
 
@@ -64,7 +63,7 @@ public:
 
     bool IsMock() const { return fMockDb; }
     bool IsInitialized() const { return fDbEnvInit; }
-    fs::path Directory() const { return fs::PathFromString(strPath); }
+    fs::path Directory() const { return strPath; }
 
     bool Open(bilingual_str& error);
     void Close();
@@ -114,7 +113,7 @@ public:
      */
     bool Rewrite(const char* pszSkip=nullptr) override;
 
-    /** Indicate that a new database user has begun using the database. */
+    /** Indicate the a new database user has began using the database. */
     void AddRef() override;
     /** Indicate that database user has stopped using the database and that it could be flushed or closed. */
     void RemoveRef() override;
@@ -142,7 +141,7 @@ public:
     bool Verify(bilingual_str& error);
 
     /** Return path to main database filename */
-    std::string Filename() override { return fs::PathToString(env->Directory() / strFile); }
+    std::string Filename() override { return (env->Directory() / strFile).string(); }
 
     std::string Format() override { return "bdb"; }
     /**
@@ -230,6 +229,5 @@ bool BerkeleyDatabaseSanityCheck();
 
 //! Return object giving access to Berkeley database at specified path.
 std::unique_ptr<BerkeleyDatabase> MakeBerkeleyDatabase(const fs::path& path, const DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error);
-} // namespace wallet
 
-#endif // BITCOIN_WALLET_BDB_H
+#endif // SAMCOIN_WALLET_BDB_H

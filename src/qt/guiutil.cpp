@@ -1,18 +1,17 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/guiutil.h>
 
-#include <qt/bitcoinaddressvalidator.h>
-#include <qt/bitcoinunits.h>
+#include <qt/samcoinaddressvalidator.h>
+#include <qt/samcoinunits.h>
 #include <qt/platformstyle.h>
 #include <qt/qvalidatedlineedit.h>
 #include <qt/sendcoinsrecipient.h>
 
 #include <base58.h>
 #include <chainparams.h>
-#include <fs.h>
 #include <interfaces/node.h>
 #include <key_io.h>
 #include <policy/policy.h>
@@ -21,7 +20,6 @@
 #include <script/script.h>
 #include <script/standard.h>
 #include <util/system.h>
-#include <util/time.h>
 
 #ifdef WIN32
 #ifndef NOMINMAX
@@ -38,7 +36,6 @@
 #include <QClipboard>
 #include <QDateTime>
 #include <QDesktopServices>
-#include <QDialog>
 #include <QDoubleValidator>
 #include <QFileDialog>
 #include <QFont>
@@ -67,10 +64,6 @@
 
 #include <cassert>
 #include <chrono>
-#include <exception>
-#include <fstream>
-#include <string>
-#include <vector>
 
 #if defined(Q_OS_MAC)
 
@@ -88,7 +81,7 @@ QString dateTimeStr(const QDateTime &date)
 
 QString dateTimeStr(qint64 nTime)
 {
-    return dateTimeStr(QDateTime::fromSecsSinceEpoch(nTime));
+    return dateTimeStr(QDateTime::fromTime_t((qint32)nTime));
 }
 
 QFont fixedPitchFont(bool use_embedded_font)
@@ -124,10 +117,10 @@ void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
     widget->setFont(fixedPitchFont());
     // We don't want translators to use own addresses in translations
     // and this is the only place, where this address is supplied.
-    widget->setPlaceholderText(QObject::tr("Enter a Bitcoin address (e.g. %1)").arg(
+    widget->setPlaceholderText(QObject::tr("Enter a Samcoin address (e.g. %1)").arg(
         QString::fromStdString(DummyAddress(Params()))));
-    widget->setValidator(new BitcoinAddressEntryValidator(parent));
-    widget->setCheckValidator(new BitcoinAddressCheckValidator(parent));
+    widget->setValidator(new SamcoinAddressEntryValidator(parent));
+    widget->setCheckValidator(new SamcoinAddressCheckValidator(parent));
 }
 
 void AddButtonShortcut(QAbstractButton* button, const QKeySequence& shortcut)
@@ -135,10 +128,10 @@ void AddButtonShortcut(QAbstractButton* button, const QKeySequence& shortcut)
     QObject::connect(new QShortcut(shortcut, button), &QShortcut::activated, [button]() { button->animateClick(); });
 }
 
-bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
+bool parseSamcoinURI(const QUrl &uri, SendCoinsRecipient *out)
 {
-    // return if URI is not valid or is no bitcoin: URI
-    if(!uri.isValid() || uri.scheme() != QString("bitcoin"))
+    // return if URI is not valid or is no samcoin: URI
+    if(!uri.isValid() || uri.scheme() != QString("samcoin"))
         return false;
 
     SendCoinsRecipient rv;
@@ -174,7 +167,7 @@ bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
         {
             if(!i->second.isEmpty())
             {
-                if(!BitcoinUnits::parse(BitcoinUnits::BTC, i->second, &rv.amount))
+                if(!SamcoinUnits::parse(SamcoinUnits::SAM, i->second, &rv.amount))
                 {
                     return false;
                 }
@@ -192,22 +185,22 @@ bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out)
     return true;
 }
 
-bool parseBitcoinURI(QString uri, SendCoinsRecipient *out)
+bool parseSamcoinURI(QString uri, SendCoinsRecipient *out)
 {
     QUrl uriInstance(uri);
-    return parseBitcoinURI(uriInstance, out);
+    return parseSamcoinURI(uriInstance, out);
 }
 
-QString formatBitcoinURI(const SendCoinsRecipient &info)
+QString formatSamcoinURI(const SendCoinsRecipient &info)
 {
     bool bech_32 = info.address.startsWith(QString::fromStdString(Params().Bech32HRP() + "1"));
 
-    QString ret = QString("bitcoin:%1").arg(bech_32 ? info.address.toUpper() : info.address);
+    QString ret = QString("samcoin:%1").arg(bech_32 ? info.address.toUpper() : info.address);
     int paramCount = 0;
 
     if (info.amount)
     {
-        ret += QString("?amount=%1").arg(BitcoinUnits::format(BitcoinUnits::BTC, info.amount, false, BitcoinUnits::SeparatorStyle::NEVER));
+        ret += QString("?amount=%1").arg(SamcoinUnits::format(SamcoinUnits::SAM, info.amount, false, SamcoinUnits::SeparatorStyle::NEVER));
         paramCount++;
     }
 
@@ -278,15 +271,9 @@ bool hasEntryData(const QAbstractItemView *view, int column, int role)
     return !selection.at(0).data(role).toString().isEmpty();
 }
 
-void LoadFont(const QString& file_name)
-{
-    const int id = QFontDatabase::addApplicationFont(file_name);
-    assert(id != -1);
-}
-
 QString getDefaultDataDirectory()
 {
-    return PathToQString(GetDefaultDataDir());
+    return boostPathToQString(GetDefaultDataDir());
 }
 
 QString getSaveFileName(QWidget *parent, const QString &caption, const QString &dir,
@@ -423,27 +410,27 @@ void openDebugLogfile()
 
     /* Open debug.log with the associated application */
     if (fs::exists(pathDebug))
-        QDesktopServices::openUrl(QUrl::fromLocalFile(PathToQString(pathDebug)));
+        QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathDebug)));
 }
 
-bool openBitcoinConf()
+bool openSamcoinConf()
 {
-    fs::path pathConfig = GetConfigFile(gArgs.GetArg("-conf", BITCOIN_CONF_FILENAME));
+    fs::path pathConfig = GetConfigFile(gArgs.GetArg("-conf", SAMCOIN_CONF_FILENAME));
 
     /* Create the file */
-    std::ofstream configFile{pathConfig, std::ios_base::app};
+    fsbridge::ofstream configFile(pathConfig, std::ios_base::app);
 
     if (!configFile.good())
         return false;
 
     configFile.close();
 
-    /* Open bitcoin.conf with the associated application */
-    bool res = QDesktopServices::openUrl(QUrl::fromLocalFile(PathToQString(pathConfig)));
+    /* Open samcoin.conf with the associated application */
+    bool res = QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathConfig)));
 #ifdef Q_OS_MAC
     // Workaround for macOS-specific behavior; see #15409.
     if (!res) {
-        res = QProcess::startDetached("/usr/bin/open", QStringList{"-t", PathToQString(pathConfig)});
+        res = QProcess::startDetached("/usr/bin/open", QStringList{"-t", boostPathToQString(pathConfig)});
     }
 #endif
 
@@ -502,15 +489,15 @@ fs::path static StartupShortcutPath()
 {
     std::string chain = gArgs.GetChainName();
     if (chain == CBaseChainParams::MAIN)
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "Bitcoin.lnk";
+        return GetSpecialFolderPath(CSIDL_STARTUP) / "Samcoin.lnk";
     if (chain == CBaseChainParams::TESTNET) // Remove this special case when CBaseChainParams::TESTNET = "testnet4"
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "Bitcoin (testnet).lnk";
-    return GetSpecialFolderPath(CSIDL_STARTUP) / strprintf("Bitcoin (%s).lnk", chain);
+        return GetSpecialFolderPath(CSIDL_STARTUP) / "Samcoin (testnet).lnk";
+    return GetSpecialFolderPath(CSIDL_STARTUP) / strprintf("Samcoin (%s).lnk", chain);
 }
 
 bool GetStartOnSystemStartup()
 {
-    // check for Bitcoin*.lnk
+    // check for Samcoin*.lnk
     return fs::exists(StartupShortcutPath());
 }
 
@@ -585,13 +572,13 @@ fs::path static GetAutostartFilePath()
 {
     std::string chain = gArgs.GetChainName();
     if (chain == CBaseChainParams::MAIN)
-        return GetAutostartDir() / "bitcoin.desktop";
-    return GetAutostartDir() / strprintf("bitcoin-%s.desktop", chain);
+        return GetAutostartDir() / "samcoin.desktop";
+    return GetAutostartDir() / strprintf("samcoin-%s.desktop", chain);
 }
 
 bool GetStartOnSystemStartup()
 {
-    std::ifstream optionFile{GetAutostartFilePath()};
+    fsbridge::ifstream optionFile(GetAutostartFilePath());
     if (!optionFile.good())
         return false;
     // Scan through file for "Hidden=true":
@@ -622,17 +609,17 @@ bool SetStartOnSystemStartup(bool fAutoStart)
 
         fs::create_directories(GetAutostartDir());
 
-        std::ofstream optionFile{GetAutostartFilePath(), std::ios_base::out | std::ios_base::trunc};
+        fsbridge::ofstream optionFile(GetAutostartFilePath(), std::ios_base::out | std::ios_base::trunc);
         if (!optionFile.good())
             return false;
         std::string chain = gArgs.GetChainName();
-        // Write a bitcoin.desktop file to the autostart directory:
+        // Write a samcoin.desktop file to the autostart directory:
         optionFile << "[Desktop Entry]\n";
         optionFile << "Type=Application\n";
         if (chain == CBaseChainParams::MAIN)
-            optionFile << "Name=Bitcoin\n";
+            optionFile << "Name=Samcoin\n";
         else
-            optionFile << strprintf("Name=Bitcoin (%s)\n", chain);
+            optionFile << strprintf("Name=Samcoin (%s)\n", chain);
         optionFile << "Exec=" << pszExePath << strprintf(" -min -chain=%s\n", chain);
         optionFile << "Terminal=false\n";
         optionFile << "Hidden=false\n";
@@ -657,14 +644,14 @@ void setClipboard(const QString& str)
     }
 }
 
-fs::path QStringToPath(const QString &path)
+fs::path qstringToBoostPath(const QString &path)
 {
-    return fs::u8path(path.toStdString());
+    return fs::path(path.toStdString());
 }
 
-QString PathToQString(const fs::path &path)
+QString boostPathToQString(const fs::path &path)
 {
-    return QString::fromStdString(path.u8string());
+    return QString::fromStdString(path.string());
 }
 
 QString NetworkToQString(Network net)
@@ -686,34 +673,21 @@ QString ConnectionTypeToQString(ConnectionType conn_type, bool prepend_direction
 {
     QString prefix;
     if (prepend_direction) {
-        prefix = (conn_type == ConnectionType::INBOUND) ?
-                     /*: An inbound connection from a peer. An inbound connection
-                         is a connection initiated by a peer. */
-                     QObject::tr("Inbound") :
-                     /*: An outbound connection to a peer. An outbound connection
-                         is a connection initiated by us. */
-                     QObject::tr("Outbound") + " ";
+        prefix = (conn_type == ConnectionType::INBOUND) ? QObject::tr("Inbound") : QObject::tr("Outbound") + " ";
     }
     switch (conn_type) {
     case ConnectionType::INBOUND: return prefix;
-    //: Peer connection type that relays all network information.
     case ConnectionType::OUTBOUND_FULL_RELAY: return prefix + QObject::tr("Full Relay");
-    /*: Peer connection type that relays network information about
-        blocks and not transactions or addresses. */
     case ConnectionType::BLOCK_RELAY: return prefix + QObject::tr("Block Relay");
-    //: Peer connection type established manually through one of several methods.
     case ConnectionType::MANUAL: return prefix + QObject::tr("Manual");
-    //: Short-lived peer connection type that tests the aliveness of known addresses.
     case ConnectionType::FEELER: return prefix + QObject::tr("Feeler");
-    //: Short-lived peer connection type that solicits known addresses from a peer.
     case ConnectionType::ADDR_FETCH: return prefix + QObject::tr("Address Fetch");
     } // no default case, so the compiler can warn about missing cases
     assert(false);
 }
 
-QString formatDurationStr(std::chrono::seconds dur)
+QString formatDurationStr(int secs)
 {
-    const auto secs = count_seconds(dur);
     QStringList strList;
     int days = secs / 86400;
     int hours = (secs % 86400) / 3600;
@@ -982,13 +956,6 @@ void PrintSlotException(
     description += "->";
     description += receiver->metaObject()->className();
     PrintExceptionContinue(exception, description.c_str());
-}
-
-void ShowModalDialogAsynchronously(QDialog* dialog)
-{
-    dialog->setAttribute(Qt::WA_DeleteOnClose);
-    dialog->setWindowModality(Qt::ApplicationModal);
-    dialog->show();
 }
 
 } // namespace GUIUtil

@@ -1,10 +1,9 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <util/settings.h>
 
-#include <fs.h>
 #include <test/util/setup_common.h>
 #include <test/util/str.h>
 
@@ -14,11 +13,6 @@
 #include <util/strencodings.h>
 #include <util/string.h>
 #include <util/system.h>
-
-#include <fstream>
-#include <map>
-#include <string>
-#include <system_error>
 #include <vector>
 
 inline bool operator==(const util::SettingsValue& a, const util::SettingsValue& b)
@@ -42,7 +36,7 @@ inline std::ostream& operator<<(std::ostream& os, const std::pair<std::string, u
 
 inline void WriteText(const fs::path& path, const std::string& text)
 {
-    std::ofstream file;
+    fsbridge::ofstream file;
     file.open(path);
     file << text;
 }
@@ -86,19 +80,19 @@ BOOST_AUTO_TEST_CASE(ReadWrite)
         "dupe": "dupe"
     })");
     BOOST_CHECK(!util::ReadSettings(path, values, errors));
-    std::vector<std::string> dup_keys = {strprintf("Found duplicate key dupe in settings file %s", fs::PathToString(path))};
+    std::vector<std::string> dup_keys = {strprintf("Found duplicate key dupe in settings file %s", path.string())};
     BOOST_CHECK_EQUAL_COLLECTIONS(errors.begin(), errors.end(), dup_keys.begin(), dup_keys.end());
 
     // Check non-kv json files not allowed
     WriteText(path, R"("non-kv")");
     BOOST_CHECK(!util::ReadSettings(path, values, errors));
-    std::vector<std::string> non_kv = {strprintf("Found non-object value \"non-kv\" in settings file %s", fs::PathToString(path))};
+    std::vector<std::string> non_kv = {strprintf("Found non-object value \"non-kv\" in settings file %s", path.string())};
     BOOST_CHECK_EQUAL_COLLECTIONS(errors.begin(), errors.end(), non_kv.begin(), non_kv.end());
 
     // Check invalid json not allowed
     WriteText(path, R"(invalid json)");
     BOOST_CHECK(!util::ReadSettings(path, values, errors));
-    std::vector<std::string> fail_parse = {strprintf("Unable to parse settings file %s", fs::PathToString(path))};
+    std::vector<std::string> fail_parse = {strprintf("Unable to parse settings file %s", path.string())};
     BOOST_CHECK_EQUAL_COLLECTIONS(errors.begin(), errors.end(), fail_parse.begin(), fail_parse.end());
 }
 
@@ -251,7 +245,7 @@ BOOST_FIXTURE_TEST_CASE(Merge, MergeTestingSetup)
 
     // If check below fails, should manually dump the results with:
     //
-    //   SETTINGS_MERGE_TEST_OUT=results.txt ./test_bitcoin --run_test=settings_tests/Merge
+    //   SETTINGS_MERGE_TEST_OUT=results.txt ./test_samcoin --run_test=settings_tests/Merge
     //
     // And verify diff against previous results to make sure the changes are expected.
     //

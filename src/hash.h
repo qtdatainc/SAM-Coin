@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_HASH_H
-#define BITCOIN_HASH_H
+#ifndef SAMCOIN_HASH_H
+#define SAMCOIN_HASH_H
 
 #include <attributes.h>
 #include <crypto/common.h>
@@ -20,7 +20,7 @@
 
 typedef uint256 ChainCode;
 
-/** A hasher class for Bitcoin's 256-bit hash (double SHA-256). */
+/** A hasher class for Samcoin's 256-bit hash (double SHA-256). */
 class CHash256 {
 private:
     CSHA256 sha;
@@ -45,7 +45,7 @@ public:
     }
 };
 
-/** A hasher class for Bitcoin's 160-bit hash (SHA-256 + RIPEMD-160). */
+/** A hasher class for Samcoin's 160-bit hash (SHA-256 + RIPEMD-160). */
 class CHash160 {
 private:
     CSHA256 sha;
@@ -111,9 +111,8 @@ public:
     int GetType() const { return nType; }
     int GetVersion() const { return nVersion; }
 
-    void write(Span<const std::byte> src)
-    {
-        ctx.Write(UCharCast(src.data()), src.size());
+    void write(const char *pch, size_t size) {
+        ctx.Write((const unsigned char*)pch, size);
     }
 
     /** Compute the double-SHA256 hash of all data written to this object.
@@ -163,18 +162,18 @@ private:
 public:
     explicit CHashVerifier(Source* source_) : CHashWriter(source_->GetType(), source_->GetVersion()), source(source_) {}
 
-    void read(Span<std::byte> dst)
+    void read(char* pch, size_t nSize)
     {
-        source->read(dst);
-        this->write(dst);
+        source->read(pch, nSize);
+        this->write(pch, nSize);
     }
 
     void ignore(size_t nSize)
     {
-        std::byte data[1024];
+        char data[1024];
         while (nSize > 0) {
             size_t now = std::min<size_t>(nSize, 1024);
-            read({data, now});
+            read(data, now);
             nSize -= now;
         }
     }
@@ -212,4 +211,4 @@ void BIP32Hash(const ChainCode &chainCode, unsigned int nChild, unsigned char he
  */
 CHashWriter TaggedHash(const std::string& tag);
 
-#endif // BITCOIN_HASH_H
+#endif // SAMCOIN_HASH_H

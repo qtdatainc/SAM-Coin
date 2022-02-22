@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2021 The Bitcoin Core developers
+# Copyright (c) 2018-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """upgradewallet RPC functional test
@@ -19,7 +19,7 @@ from io import BytesIO
 from test_framework.blocktools import COINBASE_MATURITY
 from test_framework.bdb import dump_bdb_kv
 from test_framework.messages import deser_compact_size, deser_string
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_is_hex_string,
@@ -44,7 +44,7 @@ def deser_keymeta(f):
         has_key_orig = bool(f.read(1))
     return ver, create_time, kp_str, seed_id, fpr, path_len, path, has_key_orig
 
-class UpgradeWalletTest(BitcoinTestFramework):
+class UpgradeWalletTest(SamcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
@@ -80,7 +80,7 @@ class UpgradeWalletTest(BitcoinTestFramework):
         v0.15.2 is only being used to test for version upgrade
         and master hash key presence.
         v0.16.3 is being used to test for version upgrade and balances.
-        Further info: https://github.com/bitcoin/bitcoin/pull/18774#discussion_r416967844
+        Further info: https://github.com/samcoin/samcoin/pull/18774#discussion_r416967844
         """
         node_from = self.nodes[0]
         v16_3_node = self.nodes[1]
@@ -119,7 +119,8 @@ class UpgradeWalletTest(BitcoinTestFramework):
         assert_equal(wallet.getwalletinfo()["walletversion"], previous_version)
 
     def run_test(self):
-        self.generatetoaddress(self.nodes[0], COINBASE_MATURITY + 1, self.nodes[0].getnewaddress(), sync_fun=lambda: self.dumb_sync_blocks())
+        self.nodes[0].generatetoaddress(COINBASE_MATURITY + 1, self.nodes[0].getnewaddress())
+        self.dumb_sync_blocks()
         # # Sanity check the test framework:
         res = self.nodes[0].getblockchaininfo()
         assert_equal(res['blocks'], COINBASE_MATURITY + 1)
@@ -130,7 +131,8 @@ class UpgradeWalletTest(BitcoinTestFramework):
         # Send coins to old wallets for later conversion checks.
         v16_3_wallet  = v16_3_node.get_wallet_rpc('wallet.dat')
         v16_3_address = v16_3_wallet.getnewaddress()
-        self.generatetoaddress(node_master, COINBASE_MATURITY + 1, v16_3_address, sync_fun=lambda: self.dumb_sync_blocks())
+        node_master.generatetoaddress(COINBASE_MATURITY + 1, v16_3_address)
+        self.dumb_sync_blocks()
         v16_3_balance = v16_3_wallet.getbalance()
 
         self.log.info("Test upgradewallet RPC...")
@@ -148,7 +150,7 @@ class UpgradeWalletTest(BitcoinTestFramework):
 
         def copy_v16():
             node_master.get_wallet_rpc(self.default_wallet_name).unloadwallet()
-            # Copy the 0.16.3 wallet to the last Bitcoin Core version and open it:
+            # Copy the 0.16.3 wallet to the last Samcoin Core version and open it:
             shutil.rmtree(node_master_wallet_dir)
             os.mkdir(node_master_wallet_dir)
             shutil.copy(
@@ -159,7 +161,7 @@ class UpgradeWalletTest(BitcoinTestFramework):
 
         def copy_non_hd():
             node_master.get_wallet_rpc(self.default_wallet_name).unloadwallet()
-            # Copy the 0.15.2 non hd wallet to the last Bitcoin Core version and open it:
+            # Copy the 0.15.2 non hd wallet to the last Samcoin Core version and open it:
             shutil.rmtree(node_master_wallet_dir)
             os.mkdir(node_master_wallet_dir)
             shutil.copy(
@@ -170,7 +172,7 @@ class UpgradeWalletTest(BitcoinTestFramework):
 
         def copy_split_hd():
             node_master.get_wallet_rpc(self.default_wallet_name).unloadwallet()
-            # Copy the 0.15.2 split hd wallet to the last Bitcoin Core version and open it:
+            # Copy the 0.15.2 split hd wallet to the last Samcoin Core version and open it:
             shutil.rmtree(node_master_wallet_dir)
             os.mkdir(node_master_wallet_dir)
             shutil.copy(
@@ -232,13 +234,18 @@ class UpgradeWalletTest(BitcoinTestFramework):
         assert_equal(1, hd_chain_version)
         seed_id = bytearray(seed_id)
         seed_id.reverse()
-
-        # New keys (including change) should be HD (the two old keys have been flushed)
+        old_kvs = new_kvs
+        # First 2 keys should still be non-HD
+        for i in range(0, 2):
+            info = wallet.getaddressinfo(wallet.getnewaddress())
+            assert 'hdkeypath' not in info
+            assert 'hdseedid' not in info
+        # Next key should be HD
         info = wallet.getaddressinfo(wallet.getnewaddress())
         assert_equal(seed_id.hex(), info['hdseedid'])
         assert_equal('m/0\'/0\'/0\'', info['hdkeypath'])
         prev_seed_id = info['hdseedid']
-        # Change key should be HD and from the same keypool
+        # Change key should be the same keypool
         info = wallet.getaddressinfo(wallet.getrawchangeaddress())
         assert_equal(prev_seed_id, info['hdseedid'])
         assert_equal('m/0\'/0\'/1\'', info['hdkeypath'])
@@ -284,7 +291,14 @@ class UpgradeWalletTest(BitcoinTestFramework):
         hd_chain_version, external_counter, seed_id, internal_counter = struct.unpack('<iI20sI', hd_chain)
         assert_equal(2, hd_chain_version)
         assert_equal(2, internal_counter)
-        # The next addresses are HD and should be on different HD chains (the one remaining key in each pool should have been flushed)
+        # Drain the keypool by fetching one external key and one change key. Should still be the same keypool
+        info = wallet.getaddressinfo(wallet.getnewaddress())
+        assert 'hdseedid' not in info
+        assert 'hdkeypath' not in info
+        info = wallet.getaddressinfo(wallet.getrawchangeaddress())
+        assert 'hdseedid' not in info
+        assert 'hdkeypath' not in info
+        # The next addresses are HD and should be on different HD chains
         info = wallet.getaddressinfo(wallet.getnewaddress())
         ext_id = info['hdseedid']
         assert_equal('m/0\'/0\'/0\'', info['hdkeypath'])

@@ -1,11 +1,11 @@
-// Copyright (c) 2016-2021 The Bitcoin Core developers
+// Copyright (c) 2016-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <bench/bench.h>
 #include <key.h>
 #if defined(HAVE_CONSENSUS_LIB)
-#include <script/bitcoinconsensus.h>
+#include <script/samcoinconsensus.h>
 #endif
 #include <script/script.h>
 #include <script/standard.h>
@@ -21,7 +21,7 @@ static void VerifyScriptBench(benchmark::Bench& bench)
     const ECCVerifyHandle verify_handle;
     ECC_Start();
 
-    const uint32_t flags{SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH};
+    const int flags = SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH;
     const int witnessversion = 0;
 
     // Key pair.
@@ -64,7 +64,7 @@ static void VerifyScriptBench(benchmark::Bench& bench)
 #if defined(HAVE_CONSENSUS_LIB)
         CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
         stream << txSpend;
-        int csuccess = bitcoinconsensus_verify_script_with_amount(
+        int csuccess = samcoinconsensus_verify_script_with_amount(
             txCredit.vout[0].scriptPubKey.data(),
             txCredit.vout[0].scriptPubKey.size(),
             txCredit.vout[0].nValue,

@@ -1,11 +1,11 @@
 .PHONY: FORCE
 all: FORCE
-	$(MAKE) -C .. bitcoin_qt test_bitcoin_qt
+	$(MAKE) -C .. samcoin_qt test_samcoin_qt
 clean: FORCE
-	$(MAKE) -C .. bitcoin_qt_clean test_bitcoin_qt_clean
+	$(MAKE) -C .. samcoin_qt_clean test_samcoin_qt_clean
 check: FORCE
-	$(MAKE) -C .. test_bitcoin_qt_check
-bitcoin-qt bitcoin-qt.exe: FORCE
-	 $(MAKE) -C .. bitcoin_qt
+	$(MAKE) -C .. test_samcoin_qt_check
+samcoin-qt samcoin-qt.exe: FORCE
+	 $(MAKE) -C .. samcoin_qt
 apk: FORCE
-	$(MAKE) -C .. bitcoin_qt_apk
+	$(MAKE) -C .. samcoin_qt_apk

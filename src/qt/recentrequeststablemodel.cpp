@@ -1,10 +1,10 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/recentrequeststablemodel.h>
 
-#include <qt/bitcoinunits.h>
+#include <qt/samcoinunits.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
 #include <qt/walletmodel.h>
@@ -89,9 +89,9 @@ QVariant RecentRequestsTableModel::data(const QModelIndex &index, int role) cons
             if (rec->recipient.amount == 0 && role == Qt::DisplayRole)
                 return tr("(no amount requested)");
             else if (role == Qt::EditRole)
-                return BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->recipient.amount, false, BitcoinUnits::SeparatorStyle::NEVER);
+                return SamcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->recipient.amount, false, SamcoinUnits::SeparatorStyle::NEVER);
             else
-                return BitcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->recipient.amount);
+                return SamcoinUnits::format(walletModel->getOptionsModel()->getDisplayUnit(), rec->recipient.amount);
         }
     }
     else if (role == Qt::TextAlignmentRole)
@@ -132,7 +132,7 @@ QString RecentRequestsTableModel::getAmountTitle()
     if (!walletModel->getOptionsModel()) return {};
     return tr("Requested") +
            QLatin1String(" (") +
-           BitcoinUnits::shortName(this->walletModel->getOptionsModel()->getDisplayUnit()) +
+           SamcoinUnits::shortName(this->walletModel->getOptionsModel()->getDisplayUnit()) +
            QLatin1Char(')');
 }
 
@@ -234,7 +234,7 @@ bool RecentRequestEntryLessThan::operator()(const RecentRequestEntry& left, cons
     switch(column)
     {
     case RecentRequestsTableModel::Date:
-        return pLeft->date.toSecsSinceEpoch() < pRight->date.toSecsSinceEpoch();
+        return pLeft->date.toTime_t() < pRight->date.toTime_t();
     case RecentRequestsTableModel::Label:
         return pLeft->recipient.label < pRight->recipient.label;
     case RecentRequestsTableModel::Message:

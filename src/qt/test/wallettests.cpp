@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2021 The Bitcoin Core developers
+// Copyright (c) 2015-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,7 +7,7 @@
 
 #include <interfaces/chain.h>
 #include <interfaces/node.h>
-#include <qt/bitcoinamountfield.h>
+#include <qt/samcoinamountfield.h>
 #include <qt/clientmodel.h>
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
@@ -26,7 +26,6 @@
 #include <qt/recentrequeststablemodel.h>
 #include <qt/receiverequestdialog.h>
 
-#include <chrono>
 #include <memory>
 
 #include <QAbstractButton>
@@ -39,15 +38,6 @@
 #include <QTextEdit>
 #include <QListView>
 #include <QDialogButtonBox>
-
-using wallet::AddWallet;
-using wallet::CWallet;
-using wallet::CreateMockWalletDatabase;
-using wallet::RemoveWallet;
-using wallet::WALLET_FLAG_DESCRIPTORS;
-using wallet::WalletContext;
-using wallet::WalletDescriptor;
-using wallet::WalletRescanReserver;
 
 namespace
 {
@@ -73,7 +63,7 @@ uint256 SendCoins(CWallet& wallet, SendCoinsDialog& sendCoinsDialog, const CTxDe
     QVBoxLayout* entries = sendCoinsDialog.findChild<QVBoxLayout*>("entries");
     SendCoinsEntry* entry = qobject_cast<SendCoinsEntry*>(entries->itemAt(0)->widget());
     entry->findChild<QValidatedLineEdit*>("payTo")->setText(QString::fromStdString(EncodeDestination(address)));
-    entry->findChild<BitcoinAmountField*>("payAmount")->setValue(amount);
+    entry->findChild<SamcoinAmountField*>("payAmount")->setValue(amount);
     sendCoinsDialog.findChild<QFrame*>("frameFee")
         ->findChild<QFrame*>("frameFeeSelection")
         ->findChild<QCheckBox*>("optInRBF")
@@ -122,7 +112,7 @@ void BumpFee(TransactionView& view, const uint256& txid, bool expectDisabled, st
     if (expectError.empty()) {
         ConfirmSend(&text, cancel);
     } else {
-        ConfirmMessage(&text, 0ms);
+        ConfirmMessage(&text);
     }
     action->trigger();
     QVERIFY(text.indexOf(QString::fromStdString(expectError)) != -1);
@@ -138,9 +128,9 @@ void BumpFee(TransactionView& view, const uint256& txid, bool expectDisabled, st
 //
 // This also requires overriding the default minimal Qt platform:
 //
-//     QT_QPA_PLATFORM=xcb     src/qt/test/test_bitcoin-qt  # Linux
-//     QT_QPA_PLATFORM=windows src/qt/test/test_bitcoin-qt  # Windows
-//     QT_QPA_PLATFORM=cocoa   src/qt/test/test_bitcoin-qt  # macOS
+//     QT_QPA_PLATFORM=xcb     src/qt/test/test_samcoin-qt  # Linux
+//     QT_QPA_PLATFORM=windows src/qt/test/test_samcoin-qt  # Windows
+//     QT_QPA_PLATFORM=cocoa   src/qt/test/test_samcoin-qt  # macOS
 void TestGUI(interfaces::Node& node)
 {
     // Set up wallet and chain with 105 blocks (5 mature blocks for spending).
@@ -148,25 +138,14 @@ void TestGUI(interfaces::Node& node)
     for (int i = 0; i < 5; ++i) {
         test.CreateAndProcessBlock({}, GetScriptForRawPubKey(test.coinbaseKey.GetPubKey()));
     }
-    auto wallet_loader = interfaces::MakeWalletLoader(*test.m_node.chain, *Assert(test.m_node.args));
-    test.m_node.wallet_loader = wallet_loader.get();
     node.setContext(&test.m_node);
-    const std::shared_ptr<CWallet> wallet = std::make_shared<CWallet>(node.context()->chain.get(), "", gArgs, CreateMockWalletDatabase());
+    std::shared_ptr<CWallet> wallet = std::make_shared<CWallet>(node.context()->chain.get(), "", CreateMockWalletDatabase());
     wallet->LoadWallet();
-    wallet->SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
     {
-        LOCK(wallet->cs_wallet);
-        wallet->SetupDescriptorScriptPubKeyMans();
-
-        // Add the coinbase key
-        FlatSigningProvider provider;
-        std::string error;
-        std::unique_ptr<Descriptor> desc = Parse("combo(" + EncodeSecret(test.coinbaseKey) + ")", provider, error, /* require_checksum=*/ false);
-        assert(desc);
-        WalletDescriptor w_desc(std::move(desc), 0, 0, 1, 1);
-        if (!wallet->AddWalletDescriptor(w_desc, provider, "", false)) assert(false);
-        CTxDestination dest = GetDestinationForKey(test.coinbaseKey.GetPubKey(), wallet->m_default_address_type);
-        wallet->SetAddressBook(dest, "", "receive");
+        auto spk_man = wallet->GetOrCreateLegacyScriptPubKeyMan();
+        LOCK2(wallet->cs_wallet, spk_man->cs_KeyStore);
+        wallet->SetAddressBook(GetDestinationForKey(test.coinbaseKey.GetPubKey(), wallet->m_default_address_type), "", "receive");
+        spk_man->AddKeyPubKey(test.coinbaseKey, test.coinbaseKey.GetPubKey());
         wallet->SetLastBlockProcessed(105, node.context()->chainman->ActiveChain().Tip()->GetBlockHash());
     }
     {
@@ -185,10 +164,9 @@ void TestGUI(interfaces::Node& node)
     TransactionView transactionView(platformStyle.get());
     OptionsModel optionsModel;
     ClientModel clientModel(node, &optionsModel);
-    WalletContext& context = *node.walletLoader().context();
-    AddWallet(context, wallet);
-    WalletModel walletModel(interfaces::MakeWallet(context, wallet), clientModel, platformStyle.get());
-    RemoveWallet(context, wallet, /* load_on_start= */ std::nullopt);
+    AddWallet(wallet);
+    WalletModel walletModel(interfaces::MakeWallet(wallet), clientModel, platformStyle.get());
+    RemoveWallet(wallet, std::nullopt);
     sendCoinsDialog.setModel(&walletModel);
     transactionView.setModel(&walletModel);
 
@@ -198,7 +176,7 @@ void TestGUI(interfaces::Node& node)
         QString balanceText = balanceLabel->text();
         int unit = walletModel.getOptionsModel()->getDisplayUnit();
         CAmount balance = walletModel.wallet().getBalance();
-        QString balanceComparison = BitcoinUnits::formatWithUnit(unit, balance, false, BitcoinUnits::SeparatorStyle::ALWAYS);
+        QString balanceComparison = SamcoinUnits::formatWithUnit(unit, balance, false, SamcoinUnits::SeparatorStyle::ALWAYS);
         QCOMPARE(balanceText, balanceComparison);
     }
 
@@ -224,7 +202,7 @@ void TestGUI(interfaces::Node& node)
     QString balanceText = balanceLabel->text().trimmed();
     int unit = walletModel.getOptionsModel()->getDisplayUnit();
     CAmount balance = walletModel.wallet().getBalance();
-    QString balanceComparison = BitcoinUnits::formatWithUnit(unit, balance, false, BitcoinUnits::SeparatorStyle::ALWAYS);
+    QString balanceComparison = SamcoinUnits::formatWithUnit(unit, balance, false, SamcoinUnits::SeparatorStyle::ALWAYS);
     QCOMPARE(balanceText, balanceComparison);
 
     // Check Request Payment button
@@ -237,7 +215,7 @@ void TestGUI(interfaces::Node& node)
     labelInput->setText("TEST_LABEL_1");
 
     // Amount input
-    BitcoinAmountField* amountInput = receiveCoinsDialog.findChild<BitcoinAmountField*>("reqAmount");
+    SamcoinAmountField* amountInput = receiveCoinsDialog.findChild<SamcoinAmountField*>("reqAmount");
     amountInput->setValue(1);
 
     // Message input
@@ -253,7 +231,7 @@ void TestGUI(interfaces::Node& node)
             QCOMPARE(receiveRequestDialog->QObject::findChild<QLabel*>("payment_header")->text(), QString("Payment information"));
             QCOMPARE(receiveRequestDialog->QObject::findChild<QLabel*>("uri_tag")->text(), QString("URI:"));
             QString uri = receiveRequestDialog->QObject::findChild<QLabel*>("uri_content")->text();
-            QCOMPARE(uri.count("bitcoin:"), 2);
+            QCOMPARE(uri.count("samcoin:"), 2);
             QCOMPARE(receiveRequestDialog->QObject::findChild<QLabel*>("address_tag")->text(), QString("Address:"));
             QVERIFY(address.isEmpty());
             address = receiveRequestDialog->QObject::findChild<QLabel*>("address_content")->text();
@@ -321,7 +299,7 @@ void WalletTests::walletTests()
         // and fails to handle returned nulls
         // (https://bugreports.qt.io/browse/QTBUG-49686).
         QWARN("Skipping WalletTests on mac build with 'minimal' platform set due to Qt bugs. To run AppTests, invoke "
-              "with 'QT_QPA_PLATFORM=cocoa test_bitcoin-qt' on mac, or else use a linux or windows build.");
+              "with 'QT_QPA_PLATFORM=cocoa test_samcoin-qt' on mac, or else use a linux or windows build.");
         return;
     }
 #endif

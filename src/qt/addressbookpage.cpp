@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <qt/addressbookpage.h>
@@ -101,12 +101,12 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode _mode,
     switch(tab)
     {
     case SendingTab:
-        ui->labelExplanation->setText(tr("These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins."));
+        ui->labelExplanation->setText(tr("These are your Samcoin addresses for sending payments. Always check the amount and the receiving address before sending coins."));
         ui->deleteAddress->setVisible(true);
         ui->newAddress->setVisible(true);
         break;
     case ReceivingTab:
-        ui->labelExplanation->setText(tr("These are your Bitcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.\nSigning is only possible with addresses of the type 'legacy'."));
+        ui->labelExplanation->setText(tr("These are your Samcoin addresses for receiving payments. Use the 'Create new receiving address' button in the receive tab to create new addresses.\nSigning is only possible with addresses of the type 'legacy'."));
         ui->deleteAddress->setVisible(false);
         ui->newAddress->setVisible(false);
         break;
@@ -182,14 +182,14 @@ void AddressBookPage::onEditAction()
     if(indexes.isEmpty())
         return;
 
-    auto dlg = new EditAddressDialog(
+    EditAddressDialog dlg(
         tab == SendingTab ?
         EditAddressDialog::EditSendingAddress :
         EditAddressDialog::EditReceivingAddress, this);
-    dlg->setModel(model);
+    dlg.setModel(model);
     QModelIndex origIndex = proxyModel->mapToSource(indexes.at(0));
-    dlg->loadRow(origIndex.row());
-    GUIUtil::ShowModalDialogAsynchronously(dlg);
+    dlg.loadRow(origIndex.row());
+    dlg.exec();
 }
 
 void AddressBookPage::on_newAddress_clicked()
@@ -282,7 +282,7 @@ void AddressBookPage::on_exportButton_clicked()
     QString filename = GUIUtil::getSaveFileName(this,
         tr("Export Address List"), QString(),
         /*: Expanded name of the CSV file format.
-            See: https://en.wikipedia.org/wiki/Comma-separated_values. */
+            See https://en.wikipedia.org/wiki/Comma-separated_values */
         tr("Comma separated file") + QLatin1String(" (*.csv)"), nullptr);
 
     if (filename.isNull())

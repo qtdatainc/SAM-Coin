@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2015-2021 The Bitcoin Core developers
+# Copyright (c) 2015-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test node responses to invalid transactions.
@@ -14,14 +14,14 @@ from test_framework.messages import (
     CTxOut,
 )
 from test_framework.p2p import P2PDataStore
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
 )
 from data import invalid_txs
 
 
-class InvalidTxRequestTest(BitcoinTestFramework):
+class InvalidTxRequestTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [[
@@ -64,7 +64,7 @@ class InvalidTxRequestTest(BitcoinTestFramework):
         node.p2ps[0].send_blocks_and_test([block], node, success=True)
 
         self.log.info("Mature the block.")
-        self.generatetoaddress(self.nodes[0], 100, self.nodes[0].get_deterministic_priv_key().address)
+        self.nodes[0].generatetoaddress(100, self.nodes[0].get_deterministic_priv_key().address)
 
         # Iterate through a list of known invalid transaction types, ensuring each is
         # rejected. Some are consensus invalid and some just violate policy.
@@ -141,9 +141,9 @@ class InvalidTxRequestTest(BitcoinTestFramework):
                 tx_orphan_2_valid,  # The valid transaction (with sufficient fee)
             ]
         }
-        # Transactions that do not end up in the mempool:
-        # tx_orphan_2_no_fee, because it has too low fee (p2ps[0] is not disconnected for relaying that tx)
-        # tx_orphan_2_invalid, because it has negative fee (p2ps[1] is disconnected for relaying that tx)
+        # Transactions that do not end up in the mempool
+        # tx_orphan_no_fee, because it has too low fee (p2ps[0] is not disconnected for relaying that tx)
+        # tx_orphan_invalid, because it has negative fee (p2ps[1] is disconnected for relaying that tx)
 
         self.wait_until(lambda: 1 == len(node.getpeerinfo()), timeout=12)  # p2ps[1] is no longer connected
         assert_equal(expected_mempool, set(node.getrawmempool()))

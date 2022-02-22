@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <randomenv.h>
@@ -53,7 +53,7 @@
 #include <sys/vmmeter.h>
 #endif
 #endif
-#if defined(HAVE_STRONG_GETAUXVAL)
+#if defined(HAVE_STRONG_GETAUXVAL) || defined(HAVE_WEAK_GETAUXVAL)
 #include <sys/auxv.h>
 #endif
 
@@ -323,10 +323,10 @@ void RandAddStaticEnv(CSHA512& hasher)
     hasher.Write((const unsigned char*)COMPILER_VERSION, strlen(COMPILER_VERSION) + 1);
 #endif
 
-    // Bitcoin client version
+    // Samcoin client version
     hasher << CLIENT_VERSION;
 
-#if defined(HAVE_STRONG_GETAUXVAL)
+#if defined(HAVE_STRONG_GETAUXVAL) || defined(HAVE_WEAK_GETAUXVAL)
     // Information available through getauxval()
 #  ifdef AT_HWCAP
     hasher << getauxval(AT_HWCAP);
@@ -346,7 +346,7 @@ void RandAddStaticEnv(CSHA512& hasher)
     const char* exec_str = (const char*)getauxval(AT_EXECFN);
     if (exec_str) hasher.Write((const unsigned char*)exec_str, strlen(exec_str) + 1);
 #  endif
-#endif // HAVE_STRONG_GETAUXVAL
+#endif // HAVE_STRONG_GETAUXVAL || HAVE_WEAK_GETAUXVAL
 
 #ifdef HAVE_GETCPUID
     AddAllCPUID(hasher);

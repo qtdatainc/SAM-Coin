@@ -1,20 +1,17 @@
-// Copyright (c) 2016-2021 The Bitcoin Core developers
+// Copyright (c) 2016-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_WALLET_WALLETTOOL_H
-#define BITCOIN_WALLET_WALLETTOOL_H
+#ifndef SAMCOIN_WALLET_WALLETTOOL_H
+#define SAMCOIN_WALLET_WALLETTOOL_H
 
-#include <string>
+#include <wallet/wallet.h>
 
-class ArgsManager;
-
-namespace wallet {
 namespace WalletTool {
 
+void WalletShowInfo(CWallet* wallet_instance);
 bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command);
 
 } // namespace WalletTool
-} // namespace wallet
 
-#endif // BITCOIN_WALLET_WALLETTOOL_H
+#endif // SAMCOIN_WALLET_WALLETTOOL_H

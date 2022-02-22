@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-# Copyright (c) 2019-2021 The Bitcoin Core developers
+# Copyright (c) 2019-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the generation of UTXO snapshots using `dumptxoutset`.
 """
 
 from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error
 
 import hashlib
 from pathlib import Path
 
 
-class DumptxoutsetTest(BitcoinTestFramework):
+class DumptxoutsetTest(SamcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
@@ -23,7 +23,7 @@ class DumptxoutsetTest(BitcoinTestFramework):
         node = self.nodes[0]
         mocktime = node.getblockheader(node.getblockhash(0))['time'] + 1
         node.setmocktime(mocktime)
-        self.generate(node, COINBASE_MATURITY)
+        node.generate(COINBASE_MATURITY)
 
         FILENAME = 'txoutset.dat'
         out = node.dumptxoutset(FILENAME)
@@ -44,10 +44,6 @@ class DumptxoutsetTest(BitcoinTestFramework):
             # UTXO snapshot hash should be deterministic based on mocked time.
             assert_equal(
                 digest, '7ae82c986fa5445678d2a21453bb1c86d39e47af13da137640c2b1cf8093691c')
-
-        assert_equal(
-            out['txoutset_hash'], 'd4b614f476b99a6e569973bf1c0120d88b1a168076f8ce25691fb41dd1cef149')
-        assert_equal(out['nchaintx'], 101)
 
         # Specifying a path to an existing file will fail.
         assert_raises_rpc_error(

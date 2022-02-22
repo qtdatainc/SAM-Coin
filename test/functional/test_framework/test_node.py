@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Bitcoin Core developers
+# Copyright (c) 2017-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Class for bitcoind node under test"""
+"""Class for samcoind node under test"""
 
 import contextlib
 import decimal
@@ -20,7 +20,6 @@ import urllib.parse
 import collections
 import shlex
 import sys
-from pathlib import Path
 
 from .authproxy import JSONRPCException
 from .descriptors import descsum_create
@@ -38,7 +37,7 @@ from .util import (
     EncodeDecimal,
 )
 
-BITCOIND_PROC_WAIT_TIMEOUT = 60
+SAMCOIND_PROC_WAIT_TIMEOUT = 60
 
 
 class FailedToStartError(Exception):
@@ -52,7 +51,7 @@ class ErrorMatch(Enum):
 
 
 class TestNode():
-    """A class for representing a bitcoind node under test.
+    """A class for representing a samcoind node under test.
 
     This class contains:
 
@@ -65,7 +64,7 @@ class TestNode():
     To make things easier for the test writer, any unrecognised messages will
     be dispatched to the RPC connection."""
 
-    def __init__(self, i, datadir, *, chain, rpchost, timewait, timeout_factor, bitcoind, bitcoin_cli, coverage_dir, cwd, extra_conf=None, extra_args=None, use_cli=False, start_perf=False, use_valgrind=False, version=None, descriptors=False):
+    def __init__(self, i, datadir, *, chain, rpchost, timewait, timeout_factor, samcoind, samcoin_cli, coverage_dir, cwd, extra_conf=None, extra_args=None, use_cli=False, start_perf=False, use_valgrind=False, version=None, descriptors=False):
         """
         Kwargs:
             start_perf (bool): If True, begin profiling the node with `perf` as soon as
@@ -75,13 +74,13 @@ class TestNode():
         self.index = i
         self.p2p_conn_index = 1
         self.datadir = datadir
-        self.bitcoinconf = os.path.join(self.datadir, "bitcoin.conf")
+        self.samcoinconf = os.path.join(self.datadir, "samcoin.conf")
         self.stdout_dir = os.path.join(self.datadir, "stdout")
         self.stderr_dir = os.path.join(self.datadir, "stderr")
         self.chain = chain
         self.rpchost = rpchost
         self.rpc_timeout = timewait
-        self.binary = bitcoind
+        self.binary = samcoind
         self.coverage_dir = coverage_dir
         self.cwd = cwd
         self.descriptors = descriptors
@@ -92,8 +91,8 @@ class TestNode():
         # Note that common args are set in the config file (see initialize_datadir)
         self.extra_args = extra_args
         self.version = version
-        # Configuration for logging is set as command-line args rather than in the bitcoin.conf file.
-        # This means that starting a bitcoind using the temp dir to debug a failed test won't
+        # Configuration for logging is set as command-line args rather than in the samcoin.conf file.
+        # This means that starting a samcoind using the temp dir to debug a failed test won't
         # spam debug.log.
         self.args = [
             self.binary,
@@ -119,7 +118,7 @@ class TestNode():
         if self.version_is_at_least(219900):
             self.args.append("-logsourcelocations")
 
-        self.cli = TestNodeCLI(bitcoin_cli, self.datadir)
+        self.cli = TestNodeCLI(samcoin_cli, self.datadir)
         self.use_cli = use_cli
         self.start_perf = start_perf
 
@@ -167,7 +166,7 @@ class TestNode():
         raise AssertionError(self._node_msg(msg))
 
     def __del__(self):
-        # Ensure that we don't leave any bitcoind processes lying around after
+        # Ensure that we don't leave any samcoind processes lying around after
         # the test ends
         if self.process and self.cleanup_on_exit:
             # Should only happen on test failure
@@ -189,7 +188,7 @@ class TestNode():
         if extra_args is None:
             extra_args = self.extra_args
 
-        # Add a new stdout and stderr file each time bitcoind is started
+        # Add a new stdout and stderr file each time samcoind is started
         if stderr is None:
             stderr = tempfile.NamedTemporaryFile(dir=self.stderr_dir, delete=False)
         if stdout is None:
@@ -201,7 +200,7 @@ class TestNode():
             cwd = self.cwd
 
         # Delete any existing cookie file -- if such a file exists (eg due to
-        # unclean shutdown), it will get overwritten anyway by bitcoind, and
+        # unclean shutdown), it will get overwritten anyway by samcoind, and
         # potentially interfere with our attempt to authenticate
         delete_cookie_file(self.datadir, self.chain)
 
@@ -211,19 +210,19 @@ class TestNode():
         self.process = subprocess.Popen(self.args + extra_args, env=subp_env, stdout=stdout, stderr=stderr, cwd=cwd, **kwargs)
 
         self.running = True
-        self.log.debug("bitcoind started, waiting for RPC to come up")
+        self.log.debug("samcoind started, waiting for RPC to come up")
 
         if self.start_perf:
             self._start_perf()
 
     def wait_for_rpc_connection(self):
-        """Sets up an RPC connection to the bitcoind process. Returns False if unable to connect."""
+        """Sets up an RPC connection to the samcoind process. Returns False if unable to connect."""
         # Poll at a rate of four times per second
         poll_per_s = 4
         for _ in range(poll_per_s * self.rpc_timeout):
             if self.process.poll() is not None:
                 raise FailedToStartError(self._node_msg(
-                    'bitcoind exited with status {} during initialization'.format(self.process.returncode)))
+                    'samcoind exited with status {} during initialization'.format(self.process.returncode)))
             try:
                 rpc = get_rpc_proxy(
                     rpc_url(self.datadir, self.index, self.chain, self.rpchost),
@@ -259,7 +258,7 @@ class TestNode():
                     return
                 self.rpc = rpc
                 self.rpc_connected = True
-                self.url = self.rpc.rpc_url
+                self.url = self.rpc.url
                 return
             except JSONRPCException as e:  # Initialization phase
                 # -28 RPC in warmup
@@ -277,11 +276,11 @@ class TestNode():
                     pass  # Port not yet open?
                 else:
                     raise  # unknown OS error
-            except ValueError as e:  # cookie file not found and no rpcuser or rpcpassword; bitcoind is still starting
+            except ValueError as e:  # cookie file not found and no rpcuser or rpcpassword; samcoind is still starting
                 if "No RPC credentials" not in str(e):
                     raise
             time.sleep(1.0 / poll_per_s)
-        self._raise_assertion_error("Unable to connect to bitcoind after {}s".format(self.rpc_timeout))
+        self._raise_assertion_error("Unable to connect to samcoind after {}s".format(self.rpc_timeout))
 
     def wait_for_cookie_credentials(self):
         """Ensures auth cookie credentials can be read, e.g. for testing CLI with -rpcwait before RPC connection is up."""
@@ -293,26 +292,14 @@ class TestNode():
                 get_auth_cookie(self.datadir, self.chain)
                 self.log.debug("Cookie credentials successfully retrieved")
                 return
-            except ValueError:  # cookie file not found and no rpcuser or rpcpassword; bitcoind is still starting
+            except ValueError:  # cookie file not found and no rpcuser or rpcpassword; samcoind is still starting
                 pass            # so we continue polling until RPC credentials are retrieved
             time.sleep(1.0 / poll_per_s)
         self._raise_assertion_error("Unable to retrieve cookie credentials after {}s".format(self.rpc_timeout))
 
-    def generate(self, nblocks, maxtries=1000000, **kwargs):
+    def generate(self, nblocks, maxtries=1000000):
         self.log.debug("TestNode.generate() dispatches `generate` call to `generatetoaddress`")
-        return self.generatetoaddress(nblocks=nblocks, address=self.get_deterministic_priv_key().address, maxtries=maxtries, **kwargs)
-
-    def generateblock(self, *args, invalid_call, **kwargs):
-        assert not invalid_call
-        return self.__getattr__('generateblock')(*args, **kwargs)
-
-    def generatetoaddress(self, *args, invalid_call, **kwargs):
-        assert not invalid_call
-        return self.__getattr__('generatetoaddress')(*args, **kwargs)
-
-    def generatetodescriptor(self, *args, invalid_call, **kwargs):
-        assert not invalid_call
-        return self.__getattr__('generatetodescriptor')(*args, **kwargs)
+        return self.generatetoaddress(nblocks=nblocks, address=self.get_deterministic_priv_key().address, maxtries=maxtries)
 
     def get_wallet_rpc(self, wallet_name):
         if self.use_cli:
@@ -378,34 +365,24 @@ class TestNode():
         self.log.debug("Node stopped")
         return True
 
-    def wait_until_stopped(self, timeout=BITCOIND_PROC_WAIT_TIMEOUT):
+    def wait_until_stopped(self, timeout=SAMCOIND_PROC_WAIT_TIMEOUT):
         wait_until_helper(self.is_node_stopped, timeout=timeout, timeout_factor=self.timeout_factor)
-
-    @property
-    def chain_path(self) -> Path:
-        return Path(self.datadir) / self.chain
-
-    @property
-    def debug_log_path(self) -> Path:
-        return self.chain_path / 'debug.log'
-
-    def debug_log_bytes(self) -> int:
-        with open(self.debug_log_path, encoding='utf-8') as dl:
-            dl.seek(0, 2)
-            return dl.tell()
 
     @contextlib.contextmanager
     def assert_debug_log(self, expected_msgs, unexpected_msgs=None, timeout=2):
         if unexpected_msgs is None:
             unexpected_msgs = []
         time_end = time.time() + timeout * self.timeout_factor
-        prev_size = self.debug_log_bytes()
+        debug_log = os.path.join(self.datadir, self.chain, 'debug.log')
+        with open(debug_log, encoding='utf-8') as dl:
+            dl.seek(0, 2)
+            prev_size = dl.tell()
 
         yield
 
         while True:
             found = True
-            with open(self.debug_log_path, encoding='utf-8') as dl:
+            with open(debug_log, encoding='utf-8') as dl:
                 dl.seek(prev_size)
                 log = dl.read()
             print_log = " - " + "\n - ".join(log.splitlines())
@@ -421,43 +398,6 @@ class TestNode():
                 break
             time.sleep(0.05)
         self._raise_assertion_error('Expected messages "{}" does not partially match log:\n\n{}\n\n'.format(str(expected_msgs), print_log))
-
-    @contextlib.contextmanager
-    def wait_for_debug_log(self, expected_msgs, timeout=60, ignore_case=False):
-        """
-        Block until we see a particular debug log message fragment or until we exceed the timeout.
-        Return:
-            the number of log lines we encountered when matching
-        """
-        time_end = time.time() + timeout * self.timeout_factor
-        prev_size = self.debug_log_bytes()
-        re_flags = re.MULTILINE | (re.IGNORECASE if ignore_case else 0)
-
-        yield
-
-        while True:
-            found = True
-            with open(self.debug_log_path, encoding='utf-8') as dl:
-                dl.seek(prev_size)
-                log = dl.read()
-
-            for expected_msg in expected_msgs:
-                if re.search(re.escape(expected_msg), log, flags=re_flags) is None:
-                    found = False
-
-            if found:
-                return
-
-            if time.time() >= time_end:
-                print_log = " - " + "\n - ".join(log.splitlines())
-                break
-
-            # No sleep here because we want to detect the message fragment as fast as
-            # possible.
-
-        self._raise_assertion_error(
-            'Expected messages "{}" does not partially match log:\n\n{}\n\n'.format(
-                str(expected_msgs), print_log))
 
     @contextlib.contextmanager
     def profile_with_perf(self, profile_name: str):
@@ -499,7 +439,7 @@ class TestNode():
 
         if not test_success('readelf -S {} | grep .debug_str'.format(shlex.quote(self.binary))):
             self.log.warning(
-                "perf output won't be very useful without debug symbols compiled into bitcoind")
+                "perf output won't be very useful without debug symbols compiled into samcoind")
 
         output_path = tempfile.NamedTemporaryFile(
             dir=self.datadir,
@@ -540,17 +480,17 @@ class TestNode():
     def assert_start_raises_init_error(self, extra_args=None, expected_msg=None, match=ErrorMatch.FULL_TEXT, *args, **kwargs):
         """Attempt to start the node and expect it to raise an error.
 
-        extra_args: extra arguments to pass through to bitcoind
-        expected_msg: regex that stderr should match when bitcoind fails
+        extra_args: extra arguments to pass through to samcoind
+        expected_msg: regex that stderr should match when samcoind fails
 
-        Will throw if bitcoind starts without an error.
-        Will throw if an expected_msg is provided and it does not match bitcoind's stdout."""
+        Will throw if samcoind starts without an error.
+        Will throw if an expected_msg is provided and it does not match samcoind's stdout."""
         with tempfile.NamedTemporaryFile(dir=self.stderr_dir, delete=False) as log_stderr, \
              tempfile.NamedTemporaryFile(dir=self.stdout_dir, delete=False) as log_stdout:
             try:
                 self.start(extra_args, stdout=log_stdout, stderr=log_stderr, *args, **kwargs)
                 ret = self.process.wait(timeout=self.rpc_timeout)
-                self.log.debug(self._node_msg(f'bitcoind exited with status {ret} during initialization'))
+                self.log.debug(self._node_msg(f'samcoind exited with status {ret} during initialization'))
                 assert ret != 0  # Exit code must indicate failure
                 self.running = False
                 self.process = None
@@ -574,7 +514,7 @@ class TestNode():
                 self.process.kill()
                 self.running = False
                 self.process = None
-                assert_msg = f'bitcoind should have exited within {self.rpc_timeout}s '
+                assert_msg = f'samcoind should have exited within {self.rpc_timeout}s '
                 if expected_msg is None:
                     assert_msg += "with an error"
                 else:
@@ -609,8 +549,8 @@ class TestNode():
             # in comparison to the upside of making tests less fragile and unexpected intermittent errors less likely.
             p2p_conn.sync_with_ping()
 
-            # Consistency check that the Bitcoin Core has received our user agent string. This checks the
-            # node's newest peer. It could be racy if another Bitcoin Core node has connected since we opened
+            # Consistency check that the Samcoin Core has received our user agent string. This checks the
+            # node's newest peer. It could be racy if another Samcoin Core node has connected since we opened
             # our connection, but we don't expect that to happen.
             assert_equal(self.getpeerinfo()[-1]['subver'], P2P_SUBVERSION)
 
@@ -618,7 +558,7 @@ class TestNode():
 
     def add_outbound_p2p_connection(self, p2p_conn, *, p2p_idx, connection_type="outbound-full-relay", **kwargs):
         """Add an outbound p2p connection from node. Must be an
-        "outbound-full-relay", "block-relay-only", "addr-fetch" or "feeler" connection.
+        "outbound-full-relay", "block-relay-only" or "addr-fetch" connection.
 
         This method adds the p2p connection to the self.p2ps list and returns
         the connection to the caller.
@@ -630,16 +570,11 @@ class TestNode():
 
         p2p_conn.peer_accept_connection(connect_cb=addconnection_callback, connect_id=p2p_idx + 1, net=self.chain, timeout_factor=self.timeout_factor, **kwargs)()
 
-        if connection_type == "feeler":
-            # feeler connections are closed as soon as the node receives a `version` message
-            p2p_conn.wait_until(lambda: p2p_conn.message_count["version"] == 1, check_connected=False)
-            p2p_conn.wait_until(lambda: not p2p_conn.is_connected, check_connected=False)
-        else:
-            p2p_conn.wait_for_connect()
-            self.p2ps.append(p2p_conn)
+        p2p_conn.wait_for_connect()
+        self.p2ps.append(p2p_conn)
 
-            p2p_conn.wait_for_verack()
-            p2p_conn.sync_with_ping()
+        p2p_conn.wait_for_verack()
+        p2p_conn.sync_with_ping()
 
         return p2p_conn
 
@@ -680,16 +615,16 @@ def arg_to_cli(arg):
 
 
 class TestNodeCLI():
-    """Interface to bitcoin-cli for an individual node"""
+    """Interface to samcoin-cli for an individual node"""
     def __init__(self, binary, datadir):
         self.options = []
         self.binary = binary
         self.datadir = datadir
         self.input = None
-        self.log = logging.getLogger('TestFramework.bitcoincli')
+        self.log = logging.getLogger('TestFramework.samcoincli')
 
     def __call__(self, *options, input=None):
-        # TestNodeCLI is callable with bitcoin-cli command-line options
+        # TestNodeCLI is callable with samcoin-cli command-line options
         cli = TestNodeCLI(self.binary, self.datadir)
         cli.options = [str(o) for o in options]
         cli.input = input
@@ -708,17 +643,17 @@ class TestNodeCLI():
         return results
 
     def send_cli(self, command=None, *args, **kwargs):
-        """Run bitcoin-cli command. Deserializes returned string as python object."""
+        """Run samcoin-cli command. Deserializes returned string as python object."""
         pos_args = [arg_to_cli(arg) for arg in args]
         named_args = [str(key) + "=" + arg_to_cli(value) for (key, value) in kwargs.items()]
-        assert not (pos_args and named_args), "Cannot use positional arguments and named arguments in the same bitcoin-cli call"
+        assert not (pos_args and named_args), "Cannot use positional arguments and named arguments in the same samcoin-cli call"
         p_args = [self.binary, "-datadir=" + self.datadir] + self.options
         if named_args:
             p_args += ["-named"]
         if command is not None:
             p_args += [command]
         p_args += pos_args + named_args
-        self.log.debug("Running bitcoin-cli {}".format(p_args[2:]))
+        self.log.debug("Running samcoin-cli {}".format(p_args[2:]))
         process = subprocess.Popen(p_args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         cli_stdout, cli_stderr = process.communicate(input=self.input)
         returncode = process.poll()

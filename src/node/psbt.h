@@ -1,15 +1,14 @@
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2019 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_NODE_PSBT_H
-#define BITCOIN_NODE_PSBT_H
+#ifndef SAMCOIN_NODE_PSBT_H
+#define SAMCOIN_NODE_PSBT_H
 
 #include <psbt.h>
 
 #include <optional>
 
-namespace node {
 /**
  * Holds an analysis of one input from a PSBT
  */
@@ -53,6 +52,5 @@ struct PSBTAnalysis {
  * @return A PSBTAnalysis with information about the provided PSBT.
  */
 PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx);
-} // namespace node
 
-#endif // BITCOIN_NODE_PSBT_H
+#endif // SAMCOIN_NODE_PSBT_H

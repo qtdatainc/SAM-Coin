@@ -1,9 +1,9 @@
-// Copyright (c) 2015-2021 The Bitcoin Core developers
+// Copyright (c) 2015-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SCHEDULER_H
-#define BITCOIN_SCHEDULER_H
+#ifndef SAMCOIN_SCHEDULER_H
+#define SAMCOIN_SCHEDULER_H
 
 #include <condition_variable>
 #include <functional>
@@ -119,9 +119,9 @@ class SingleThreadedSchedulerClient
 private:
     CScheduler* m_pscheduler;
 
-    Mutex m_callbacks_mutex;
-    std::list<std::function<void()>> m_callbacks_pending GUARDED_BY(m_callbacks_mutex);
-    bool m_are_callbacks_running GUARDED_BY(m_callbacks_mutex) = false;
+    RecursiveMutex m_cs_callbacks_pending;
+    std::list<std::function<void()>> m_callbacks_pending GUARDED_BY(m_cs_callbacks_pending);
+    bool m_are_callbacks_running GUARDED_BY(m_cs_callbacks_pending) = false;
 
     void MaybeScheduleProcessQueue();
     void ProcessQueue();
@@ -146,4 +146,4 @@ public:
     size_t CallbacksPending();
 };
 
-#endif // BITCOIN_SCHEDULER_H
+#endif

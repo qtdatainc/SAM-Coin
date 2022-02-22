@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,11 +13,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-struct Dersig100Setup : public TestChain100Setup {
-    Dersig100Setup()
-        : TestChain100Setup{{"-testactivationheight=dersig@102"}} {}
-};
-
 bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
                        const CCoinsViewCache& inputs, unsigned int flags, bool cacheSigStore,
                        bool cacheFullScriptStore, PrecomputedTransactionData& txdata,
@@ -25,7 +20,7 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
 
 BOOST_AUTO_TEST_SUITE(txvalidationcache_tests)
 
-BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, Dersig100Setup)
+BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
 {
     // Make sure skipping validation of transactions that were
     // validated going into the memory pool does not allow
@@ -36,7 +31,8 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, Dersig100Setup)
     const auto ToMemPool = [this](const CMutableTransaction& tx) {
         LOCK(cs_main);
 
-        const MempoolAcceptResult result = m_node.chainman->ProcessTransaction(MakeTransactionRef(tx));
+        const MempoolAcceptResult result = AcceptToMemoryPool(m_node.chainman->ActiveChainstate(), *m_node.mempool, MakeTransactionRef(tx),
+            true /* bypass_limits */);
         return result.m_result_type == MempoolAcceptResult::ResultType::VALID;
     };
 
@@ -116,15 +112,10 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, Dersig100Setup)
 static void ValidateCheckInputsForAllFlags(const CTransaction &tx, uint32_t failing_flags, bool add_to_cache, CCoinsViewCache& active_coins_tip) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     PrecomputedTransactionData txdata;
-
-    FastRandomContext insecure_rand(true);
-
-    for (int count = 0; count < 10000; ++count) {
+    // If we add many more flags, this loop can get too expensive, but we can
+    // rewrite in the future to randomly pick a set of flags to evaluate.
+    for (uint32_t test_flags=0; test_flags < (1U << 16); test_flags += 1) {
         TxValidationState state;
-
-        // Randomly selects flag combinations
-        uint32_t test_flags = (uint32_t) insecure_rand.randrange((SCRIPT_VERIFY_END_MARKER - 1) << 1);
-
         // Filter out incompatible flag choices
         if ((test_flags & SCRIPT_VERIFY_CLEANSTACK)) {
             // CLEANSTACK requires P2SH and WITNESS, see VerifyScript() in
@@ -157,7 +148,7 @@ static void ValidateCheckInputsForAllFlags(const CTransaction &tx, uint32_t fail
     }
 }
 
-BOOST_FIXTURE_TEST_CASE(checkinputs_test, Dersig100Setup)
+BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 {
     // Test that passing CheckInputScripts with one set of script flags doesn't imply
     // that we would pass again with a different set of flags.

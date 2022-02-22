@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2016-2021 The Bitcoin Core developers
+# Copyright (c) 2016-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the dumpwallet RPC."""
@@ -7,7 +7,7 @@ import datetime
 import os
 import time
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -92,7 +92,7 @@ def read_dump(file_name, addrs, script_addrs, hd_master_addr_old):
         return found_comments, found_legacy_addr, found_p2sh_segwit_addr, found_bech32_addr, found_script_addr, found_addr_chg, found_addr_rsv, hd_master_addr_ret
 
 
-class WalletDumpTest(BitcoinTestFramework):
+class WalletDumpTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [["-keypool=90", "-addresstype=legacy"]]
@@ -134,7 +134,7 @@ class WalletDumpTest(BitcoinTestFramework):
         self.log.info('Mine a block one second before the wallet is dumped')
         dump_time = int(time.time())
         self.nodes[0].setmocktime(dump_time - 1)
-        self.generate(self.nodes[0], 1)
+        self.nodes[0].generate(1)
         self.nodes[0].setmocktime(dump_time)
         dump_time_str = '# * Created on {}Z'.format(
             datetime.datetime.fromtimestamp(
@@ -210,7 +210,7 @@ class WalletDumpTest(BitcoinTestFramework):
             self.nodes[0].getnewaddress()
 
         # Make sure that dumpwallet doesn't have a lock order issue when there is an unconfirmed tx and it is reloaded
-        # See https://github.com/bitcoin/bitcoin/issues/22489
+        # See https://github.com/samcoin/samcoin/issues/22489
         self.nodes[0].createwallet("w3")
         w3 = self.nodes[0].get_wallet_rpc("w3")
         w3.importprivkey(privkey=self.nodes[0].get_deterministic_priv_key().key, label="coinbase_import")

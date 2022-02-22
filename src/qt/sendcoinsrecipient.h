@@ -1,15 +1,15 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_SENDCOINSRECIPIENT_H
-#define BITCOIN_QT_SENDCOINSRECIPIENT_H
+#ifndef SAMCOIN_QT_SENDCOINSRECIPIENT_H
+#define SAMCOIN_QT_SENDCOINSRECIPIENT_H
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
-#include <consensus/amount.h>
+#include <amount.h>
 #include <serialize.h>
 
 #include <string>
@@ -62,4 +62,4 @@ public:
     }
 };
 
-#endif // BITCOIN_QT_SENDCOINSRECIPIENT_H
+#endif // SAMCOIN_QT_SENDCOINSRECIPIENT_H

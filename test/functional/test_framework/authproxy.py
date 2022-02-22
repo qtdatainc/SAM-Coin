@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this software; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-"""HTTP proxy for opening RPC connection to bitcoind.
+"""HTTP proxy for opening RPC connection to samcoind.
 
 AuthServiceProxy has the following improvements over python-jsonrpc's
 ServiceProxy class:
@@ -47,7 +47,7 @@ import urllib.parse
 HTTP_TIMEOUT = 30
 USER_AGENT = "AuthServiceProxy/0.1"
 
-log = logging.getLogger("BitcoinRPC")
+log = logging.getLogger("SamcoinRPC")
 
 class JSONRPCException(Exception):
     def __init__(self, rpc_error, http_status=None):
@@ -113,8 +113,10 @@ class AuthServiceProxy():
             self.__conn.request(method, path, postdata, headers)
             return self._get_response()
         except OSError as e:
+            retry = (
+                '[WinError 10053] An established connection was aborted by the software in your host machine' in str(e))
             # Workaround for a bug on macOS. See https://bugs.python.org/issue33450
-            retry = '[Errno 41] Protocol wrong type for socket' in str(e)
+            retry = retry or ('[Errno 41] Protocol wrong type for socket' in str(e))
             if retry:
                 self.__conn.close()
                 self.__conn.request(method, path, postdata, headers)

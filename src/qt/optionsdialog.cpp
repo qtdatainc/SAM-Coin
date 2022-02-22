@@ -1,15 +1,15 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <qt/optionsdialog.h>
 #include <qt/forms/ui_optionsdialog.h>
 
-#include <qt/bitcoinunits.h>
+#include <qt/samcoinunits.h>
 #include <qt/guiconstants.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
@@ -18,8 +18,6 @@
 #include <validation.h> // for DEFAULT_SCRIPTCHECK_THREADS and MAX_SCRIPTCHECK_THREADS
 #include <netbase.h>
 #include <txdb.h> // for -dbcache defaults
-
-#include <chrono>
 
 #include <QDataWidgetMapper>
 #include <QDir>
@@ -82,8 +80,8 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     /* remove Window tab on Mac */
     ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabWindow));
     /* hide launch at startup option on macOS */
-    ui->bitcoinAtStartup->setVisible(false);
-    ui->verticalLayout_Main->removeWidget(ui->bitcoinAtStartup);
+    ui->samcoinAtStartup->setVisible(false);
+    ui->verticalLayout_Main->removeWidget(ui->samcoinAtStartup);
     ui->verticalLayout_Main->removeItem(ui->horizontalSpacer_0_Main);
 #endif
 
@@ -102,10 +100,10 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     /* Display elements init */
     QDir translations(":translations");
 
-    ui->bitcoinAtStartup->setToolTip(ui->bitcoinAtStartup->toolTip().arg(PACKAGE_NAME));
-    ui->bitcoinAtStartup->setText(ui->bitcoinAtStartup->text().arg(PACKAGE_NAME));
+    ui->samcoinAtStartup->setToolTip(ui->samcoinAtStartup->toolTip().arg(PACKAGE_NAME));
+    ui->samcoinAtStartup->setText(ui->samcoinAtStartup->text().arg(PACKAGE_NAME));
 
-    ui->openBitcoinConfButton->setToolTip(ui->openBitcoinConfButton->toolTip().arg(PACKAGE_NAME));
+    ui->openSamcoinConfButton->setToolTip(ui->openSamcoinConfButton->toolTip().arg(PACKAGE_NAME));
 
     ui->lang->setToolTip(ui->lang->toolTip().arg(PACKAGE_NAME));
     ui->lang->addItem(QString("(") + tr("default") + QString(")"), QVariant(""));
@@ -125,7 +123,7 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
             ui->lang->addItem(locale.nativeLanguageName() + QString(" (") + langStr + QString(")"), QVariant(langStr));
         }
     }
-    ui->unit->setModel(new BitcoinUnits(this));
+    ui->unit->setModel(new SamcoinUnits(this));
 
     /* Widget-to-option mapper */
     mapper = new QDataWidgetMapper(this);
@@ -212,7 +210,6 @@ void OptionsDialog::setModel(OptionsModel *_model)
     connect(ui->spendZeroConfChange, &QCheckBox::clicked, this, &OptionsDialog::showRestartWarning);
     /* Network */
     connect(ui->allowIncoming, &QCheckBox::clicked, this, &OptionsDialog::showRestartWarning);
-    connect(ui->enableServer, &QCheckBox::clicked, this, &OptionsDialog::showRestartWarning);
     connect(ui->connectSocks, &QCheckBox::clicked, this, &OptionsDialog::showRestartWarning);
     connect(ui->connectSocksTor, &QCheckBox::clicked, this, &OptionsDialog::showRestartWarning);
     /* Display */
@@ -233,7 +230,7 @@ void OptionsDialog::setCurrentTab(OptionsDialog::Tab tab)
 void OptionsDialog::setMapper()
 {
     /* Main */
-    mapper->addMapping(ui->bitcoinAtStartup, OptionsModel::StartAtStartup);
+    mapper->addMapping(ui->samcoinAtStartup, OptionsModel::StartAtStartup);
     mapper->addMapping(ui->threadsScriptVerif, OptionsModel::ThreadsScriptVerif);
     mapper->addMapping(ui->databaseCache, OptionsModel::DatabaseCache);
     mapper->addMapping(ui->prune, OptionsModel::Prune);
@@ -242,15 +239,12 @@ void OptionsDialog::setMapper()
     /* Wallet */
     mapper->addMapping(ui->spendZeroConfChange, OptionsModel::SpendZeroConfChange);
     mapper->addMapping(ui->coinControlFeatures, OptionsModel::CoinControlFeatures);
-    mapper->addMapping(ui->subFeeFromAmount, OptionsModel::SubFeeFromAmount);
     mapper->addMapping(ui->externalSignerPath, OptionsModel::ExternalSignerPath);
-    mapper->addMapping(ui->m_enable_psbt_controls, OptionsModel::EnablePSBTControls);
 
     /* Network */
     mapper->addMapping(ui->mapPortUpnp, OptionsModel::MapPortUPnP);
     mapper->addMapping(ui->mapPortNatpmp, OptionsModel::MapPortNatpmp);
     mapper->addMapping(ui->allowIncoming, OptionsModel::Listen);
-    mapper->addMapping(ui->enableServer, OptionsModel::Server);
 
     mapper->addMapping(ui->connectSocks, OptionsModel::ProxyUse);
     mapper->addMapping(ui->proxyIp, OptionsModel::ProxyIP);
@@ -295,32 +289,19 @@ void OptionsDialog::on_resetButton_clicked()
 
         /* reset all options and close GUI */
         model->Reset();
-        close();
-        Q_EMIT quitOnReset();
+        QApplication::quit();
     }
 }
 
-void OptionsDialog::on_openBitcoinConfButton_clicked()
+void OptionsDialog::on_openSamcoinConfButton_clicked()
 {
-    QMessageBox config_msgbox(this);
-    config_msgbox.setIcon(QMessageBox::Information);
-    //: Window title text of pop-up box that allows opening up of configuration file.
-    config_msgbox.setWindowTitle(tr("Configuration options"));
-    /*: Explanatory text about the priority order of instructions considered by client.
-        The order from high to low being: command-line, configuration file, GUI settings. */
-    config_msgbox.setText(tr("The configuration file is used to specify advanced user options which override GUI settings. "
-                             "Additionally, any command-line options will override this configuration file."));
-
-    QPushButton* open_button = config_msgbox.addButton(tr("Continue"), QMessageBox::ActionRole);
-    config_msgbox.addButton(tr("Cancel"), QMessageBox::RejectRole);
-    open_button->setDefault(true);
-
-    config_msgbox.exec();
-
-    if (config_msgbox.clickedButton() != open_button) return;
+    /* explain the purpose of the config file */
+    QMessageBox::information(this, tr("Configuration options"),
+        tr("The configuration file is used to specify advanced user options which override GUI settings. "
+           "Additionally, any command-line options will override this configuration file."));
 
     /* show an error if there was some problem opening the file */
-    if (!GUIUtil::openBitcoinConf())
+    if (!GUIUtil::openSamcoinConf())
         QMessageBox::critical(this, tr("Error"), tr("The configuration file could not be opened."));
 }
 
@@ -364,7 +345,7 @@ void OptionsDialog::showRestartWarning(bool fPersistent)
         ui->statusLabel->setText(tr("This change would require a client restart."));
         // clear non-persistent status label after 10 seconds
         // Todo: should perhaps be a class attribute, if we extend the use of statusLabel
-        QTimer::singleShot(10s, this, &OptionsDialog::clearStatusLabel);
+        QTimer::singleShot(10000, this, &OptionsDialog::clearStatusLabel);
     }
 }
 

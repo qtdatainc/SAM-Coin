@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,8 +7,8 @@
 #error This header can only be compiled as C++.
 #endif
 
-#ifndef BITCOIN_PROTOCOL_H
-#define BITCOIN_PROTOCOL_H
+#ifndef SAMCOIN_PROTOCOL_H
+#define SAMCOIN_PROTOCOL_H
 
 #include <netaddress.h>
 #include <primitives/transaction.h>
@@ -58,7 +58,7 @@ public:
 };
 
 /**
- * Bitcoin protocol message types. When adding new message types, don't forget
+ * Samcoin protocol message types. When adding new message types, don't forget
  * to update allNetMessageTypes in protocol.cpp.
  */
 namespace NetMsgType {
@@ -273,10 +273,10 @@ enum ServiceFlags : uint64_t {
     // Nothing
     NODE_NONE = 0,
     // NODE_NETWORK means that the node is capable of serving the complete block chain. It is currently
-    // set by all Bitcoin Core non pruned nodes, and is unset by SPV clients or other light clients.
+    // set by all Samcoin Core non pruned nodes, and is unset by SPV clients or other light clients.
     NODE_NETWORK = (1 << 0),
     // NODE_BLOOM means the node is capable and willing to handle bloom-filtered connections.
-    // Bitcoin Core nodes used to support this by default, without advertising this bit,
+    // Samcoin Core nodes used to support this by default, without advertising this bit,
     // but no longer do as of protocol version 70011 (= NO_BLOOM_VERSION)
     NODE_BLOOM = (1 << 2),
     // NODE_WITNESS indicates that a node can be asked for blocks and transactions including
@@ -292,7 +292,7 @@ enum ServiceFlags : uint64_t {
 
     // Bits 24-31 are reserved for temporary experiments. Just pick a bit that
     // isn't getting used, or one not being used much, and notify the
-    // bitcoin-development mailing list. Remember that service bits are just
+    // samcoin-development mailing list. Remember that service bits are just
     // unauthenticated advertisements, so your code must be robust against
     // collisions and other cases where nodes may be advertising a service they
     // do not actually support. Other service bits should be allocated via the
@@ -396,6 +396,7 @@ public:
         // ambiguous what that would mean. Make sure no code relying on that is introduced:
         assert(!(s.GetType() & SER_GETHASH));
         bool use_v2;
+        bool store_time;
         if (s.GetType() & SER_DISK) {
             // In the disk serialization format, the encoding (v1 or v2) is determined by a flag version
             // that's part of the serialization itself. ADDRV2_FORMAT in the stream version only determines
@@ -412,16 +413,24 @@ public:
             } else {
                 throw std::ios_base::failure("Unsupported CAddress disk format version");
             }
+            store_time = true;
         } else {
             // In the network serialization format, the encoding (v1 or v2) is determined directly by
             // the value of ADDRV2_FORMAT in the stream version, as no explicitly encoded version
             // exists in the stream.
             assert(s.GetType() & SER_NETWORK);
             use_v2 = s.GetVersion() & ADDRV2_FORMAT;
+            // The only time we serialize a CAddress object without nTime is in
+            // the initial VERSION messages which contain two CAddress records.
+            // At that point, the serialization version is INIT_PROTO_VERSION.
+            // After the version handshake, serialization version is >=
+            // MIN_PEER_PROTO_VERSION and all ADDR messages are serialized with
+            // nTime.
+            store_time = s.GetVersion() != INIT_PROTO_VERSION;
         }
 
         SER_READ(obj, obj.nTime = TIME_INIT);
-        READWRITE(obj.nTime);
+        if (store_time) READWRITE(obj.nTime);
         // nServices is serialized as CompactSize in V2; as uint64_t in V1.
         if (use_v2) {
             uint64_t services_tmp;
@@ -436,7 +445,7 @@ public:
         SerReadWriteMany(os, ser_action, ReadWriteAsHelper<CService>(obj));
     }
 
-    //! Always included in serialization.
+    //! Always included in serialization, except in the network format on INIT_PROTO_VERSION.
     uint32_t nTime{TIME_INIT};
     //! Serialized as uint64_t in V1, and as CompactSize in V2.
     ServiceFlags nServices{NODE_NONE};
@@ -511,4 +520,4 @@ public:
 /** Convert a TX/WITNESS_TX/WTX CInv to a GenTxid. */
 GenTxid ToGenTxid(const CInv& inv);
 
-#endif // BITCOIN_PROTOCOL_H
+#endif // SAMCOIN_PROTOCOL_H

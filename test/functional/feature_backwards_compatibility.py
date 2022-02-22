@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2021 The Bitcoin Core developers
+# Copyright (c) 2018-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Backwards compatibility functional test
@@ -22,7 +22,7 @@ import os
 import shutil
 
 from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.descriptors import descsum_create
 
 from test_framework.util import (
@@ -31,7 +31,7 @@ from test_framework.util import (
 )
 
 
-class BackwardsCompatibilityTest(BitcoinTestFramework):
+class BackwardsCompatibilityTest(SamcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 6
@@ -64,7 +64,9 @@ class BackwardsCompatibilityTest(BitcoinTestFramework):
         self.import_deterministic_coinbase_privkeys()
 
     def run_test(self):
-        self.generatetoaddress(self.nodes[0], COINBASE_MATURITY + 1, self.nodes[0].getnewaddress())
+        self.nodes[0].generatetoaddress(COINBASE_MATURITY + 1, self.nodes[0].getnewaddress())
+
+        self.sync_blocks()
 
         # Sanity check the test framework:
         res = self.nodes[self.num_nodes - 1].getblockchaininfo()
@@ -90,14 +92,16 @@ class BackwardsCompatibilityTest(BitcoinTestFramework):
         address = wallet.getnewaddress()
         self.nodes[0].sendtoaddress(address, 10)
         self.sync_mempools()
-        self.generate(self.nodes[0], 1)
+        self.nodes[0].generate(1)
+        self.sync_blocks()
         # Create a conflicting transaction using RBF
         return_address = self.nodes[0].getnewaddress()
         tx1_id = self.nodes[1].sendtoaddress(return_address, 1)
         tx2_id = self.nodes[1].bumpfee(tx1_id)["txid"]
         # Confirm the transaction
         self.sync_mempools()
-        self.generate(self.nodes[0], 1)
+        self.nodes[0].generate(1)
+        self.sync_blocks()
         # Create another conflicting transaction using RBF
         tx3_id = self.nodes[1].sendtoaddress(return_address, 1)
         tx4_id = self.nodes[1].bumpfee(tx3_id)["txid"]
@@ -309,20 +313,20 @@ class BackwardsCompatibilityTest(BitcoinTestFramework):
         assert info['private_keys_enabled'] == False
         assert info['keypoolsize'] == 0
 
-        # RPC loadwallet failure causes bitcoind to exit, in addition to the RPC
+        # RPC loadwallet failure causes samcoind to exit, in addition to the RPC
         # call failure, so the following test won't work:
         # assert_raises_rpc_error(-4, "Wallet loading failed.", node_v17.loadwallet, 'w3_v18')
 
         # Instead, we stop node and try to launch it with the wallet:
         self.stop_node(4)
-        node_v17.assert_start_raises_init_error(["-wallet=w3_v18"], "Error: Error loading w3_v18: Wallet requires newer version of Bitcoin Core")
+        node_v17.assert_start_raises_init_error(["-wallet=w3_v18"], "Error: Error loading w3_v18: Wallet requires newer version of Samcoin Core")
         if self.options.descriptors:
             # Descriptor wallets appear to be corrupted wallets to old software
             node_v17.assert_start_raises_init_error(["-wallet=w1"], "Error: wallet.dat corrupt, salvage failed")
             node_v17.assert_start_raises_init_error(["-wallet=w2"], "Error: wallet.dat corrupt, salvage failed")
             node_v17.assert_start_raises_init_error(["-wallet=w3"], "Error: wallet.dat corrupt, salvage failed")
         else:
-            node_v17.assert_start_raises_init_error(["-wallet=w3"], "Error: Error loading w3: Wallet requires newer version of Bitcoin Core")
+            node_v17.assert_start_raises_init_error(["-wallet=w3"], "Error: Error loading w3: Wallet requires newer version of Samcoin Core")
         self.start_node(4)
 
         if not self.options.descriptors:
@@ -352,17 +356,17 @@ class BackwardsCompatibilityTest(BitcoinTestFramework):
 
         if self.is_bdb_compiled():
             # Old wallets are BDB and will only work if BDB is compiled
-            # Copy the 0.16 wallet to the last Bitcoin Core version and open it:
+            # Copy the 0.16 wallet to the last Samcoin Core version and open it:
             shutil.copyfile(
                 os.path.join(node_v16_wallets_dir, "wallets/u1_v16"),
                 os.path.join(node_master_wallets_dir, "u1_v16")
             )
             load_res = node_master.loadwallet("u1_v16")
-            # Make sure this wallet opens without warnings. See https://github.com/bitcoin/bitcoin/pull/19054
+            # Make sure this wallet opens without warnings. See https://github.com/samcoin/samcoin/pull/19054
             assert_equal(load_res['warning'], '')
             wallet = node_master.get_wallet_rpc("u1_v16")
             info = wallet.getaddressinfo(v16_addr)
-            descriptor = f"wpkh([{info['hdmasterfingerprint']}{hdkeypath[1:]}]{v16_pubkey})"
+            descriptor = "wpkh([" + info["hdmasterfingerprint"] + hdkeypath[1:] + "]" + v16_pubkey + ")"
             assert_equal(info["desc"], descsum_create(descriptor))
 
             # Now copy that same wallet back to 0.16 to make sure no automatic upgrade breaks it
@@ -376,7 +380,7 @@ class BackwardsCompatibilityTest(BitcoinTestFramework):
             info = wallet.validateaddress(v16_addr)
             assert_equal(info, v16_info)
 
-            # Copy the 0.17 wallet to the last Bitcoin Core version and open it:
+            # Copy the 0.17 wallet to the last Samcoin Core version and open it:
             node_v17.unloadwallet("u1_v17")
             shutil.copytree(
                 os.path.join(node_v17_wallets_dir, "u1_v17"),
@@ -385,7 +389,7 @@ class BackwardsCompatibilityTest(BitcoinTestFramework):
             node_master.loadwallet("u1_v17")
             wallet = node_master.get_wallet_rpc("u1_v17")
             info = wallet.getaddressinfo(address)
-            descriptor = f"wpkh([{info['hdmasterfingerprint']}{hdkeypath[1:]}]{pubkey})"
+            descriptor = "wpkh([" + info["hdmasterfingerprint"] + hdkeypath[1:] + "]" + pubkey + ")"
             assert_equal(info["desc"], descsum_create(descriptor))
 
             # Now copy that same wallet back to 0.17 to make sure no automatic upgrade breaks it
@@ -400,7 +404,7 @@ class BackwardsCompatibilityTest(BitcoinTestFramework):
             info = wallet.getaddressinfo(address)
             assert_equal(info, v17_info)
 
-            # Copy the 0.19 wallet to the last Bitcoin Core version and open it:
+            # Copy the 0.19 wallet to the last Samcoin Core version and open it:
             shutil.copytree(
                 os.path.join(node_v19_wallets_dir, "w1_v19"),
                 os.path.join(node_master_wallets_dir, "w1_v19")

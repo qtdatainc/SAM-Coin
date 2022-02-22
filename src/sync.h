@@ -1,13 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SYNC_H
-#define BITCOIN_SYNC_H
+#ifndef SAMCOIN_SYNC_H
+#define SAMCOIN_SYNC_H
 
-#include <logging.h>
-#include <logging/timer.h>
 #include <threadsafety.h>
 #include <util/macros.h>
 
@@ -128,6 +126,10 @@ using RecursiveMutex = AnnotatedMixin<std::recursive_mutex>;
 /** Wrapped mutex: supports waiting but not recursive locking */
 typedef AnnotatedMixin<std::mutex> Mutex;
 
+#ifdef DEBUG_LOCKCONTENTION
+void PrintLockContention(const char* pszName, const char* pszFile, int nLine);
+#endif
+
 /** Wrapper around std::unique_lock style lock for Mutex. */
 template <typename Mutex, typename Base = typename Mutex::UniqueLock>
 class SCOPED_LOCKABLE UniqueLock : public Base
@@ -136,18 +138,22 @@ private:
     void Enter(const char* pszName, const char* pszFile, int nLine)
     {
         EnterCritical(pszName, pszFile, nLine, Base::mutex());
-        if (Base::try_lock()) return;
-        LOG_TIME_MICROS_WITH_CATEGORY(strprintf("lock contention %s, %s:%d", pszName, pszFile, nLine), BCLog::LOCK);
-        Base::lock();
+#ifdef DEBUG_LOCKCONTENTION
+        if (!Base::try_lock()) {
+            PrintLockContention(pszName, pszFile, nLine);
+#endif
+            Base::lock();
+#ifdef DEBUG_LOCKCONTENTION
+        }
+#endif
     }
 
     bool TryEnter(const char* pszName, const char* pszFile, int nLine)
     {
         EnterCritical(pszName, pszFile, nLine, Base::mutex(), true);
         Base::try_lock();
-        if (!Base::owns_lock()) {
+        if (!Base::owns_lock())
             LeaveCritical();
-        }
         return Base::owns_lock();
     }
 
@@ -365,4 +371,4 @@ public:
     }
 };
 
-#endif // BITCOIN_SYNC_H
+#endif // SAMCOIN_SYNC_H

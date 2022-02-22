@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -19,6 +19,10 @@
 
 FUZZ_TARGET(crypto)
 {
+    // Hashing is expensive with sanitizers enabled, so limit the number of
+    // calls
+    int limit_max_ops{30};
+
     FuzzedDataProvider fuzzed_data_provider{buffer.data(), buffer.size()};
     std::vector<uint8_t> data = ConsumeRandomLengthByteVector(fuzzed_data_provider);
     if (data.empty()) {
@@ -36,8 +40,7 @@ FUZZ_TARGET(crypto)
     SHA3_256 sha3;
     CSipHasher sip_hasher{fuzzed_data_provider.ConsumeIntegral<uint64_t>(), fuzzed_data_provider.ConsumeIntegral<uint64_t>()};
 
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 30)
-    {
+    while (--limit_max_ops >= 0 && fuzzed_data_provider.ConsumeBool()) {
         CallOneOf(
             fuzzed_data_provider,
             [&] {

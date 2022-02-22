@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,7 +24,7 @@ FUZZ_TARGET(rbf)
         return;
     }
     CTxMemPool pool;
-    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
+    while (fuzzed_data_provider.ConsumeBool()) {
         const std::optional<CMutableTransaction> another_mtx = ConsumeDeserializable<CMutableTransaction>(fuzzed_data_provider);
         if (!another_mtx) {
             break;

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 The Bitcoin Core developers
+// Copyright (c) 2018-2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,11 +24,8 @@ static RPCHelpMan enumeratesigners()
             {
                 {RPCResult::Type::ARR, "signers", /* optional */ false, "",
                 {
-                    {RPCResult::Type::OBJ, "", "",
-                    {
-                        {RPCResult::Type::STR_HEX, "fingerprint", "Master key fingerprint"},
-                        {RPCResult::Type::STR, "name", "Device name"},
-                    }},
+                    {RPCResult::Type::STR_HEX, "masterkeyfingerprint", "Master key fingerprint"},
+                    {RPCResult::Type::STR, "name", "Device name"},
                 },
                 }
             }
@@ -40,7 +37,7 @@ static RPCHelpMan enumeratesigners()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
             const std::string command = gArgs.GetArg("-signer", "");
-            if (command == "") throw JSONRPCError(RPC_MISC_ERROR, "Error: restart bitcoind with -signer=<cmd>");
+            if (command == "") throw JSONRPCError(RPC_MISC_ERROR, "Error: restart samcoind with -signer=<cmd>");
             const std::string chain = gArgs.GetChainName();
             UniValue signers_res = UniValue::VARR;
             try {

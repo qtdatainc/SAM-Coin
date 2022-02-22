@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2016-2021 The Bitcoin Core developers
+# Copyright (c) 2016-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the bumpfee RPC.
@@ -24,15 +24,14 @@ from test_framework.blocktools import (
 )
 from test_framework.messages import (
     BIP125_SEQUENCE_NUMBER,
+    tx_from_hex,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_greater_than,
     assert_raises_rpc_error,
 )
-from test_framework.wallet import MiniWallet
-
 
 WALLET_PASSPHRASE = "test"
 WALLET_PASSPHRASE_TIMEOUT = 3600
@@ -45,7 +44,7 @@ HIGH         =    500
 TOO_HIGH     = 100000
 
 
-class BumpFeeTest(BitcoinTestFramework):
+class BumpFeeTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.setup_clean_chain = True
@@ -60,7 +59,8 @@ class BumpFeeTest(BitcoinTestFramework):
 
     def clear_mempool(self):
         # Clear mempool between subtests. The subtests may only depend on chainstate (utxos)
-        self.generate(self.nodes[1], 1)
+        self.nodes[1].generate(1)
+        self.sync_all()
 
     def run_test(self):
         # Encrypt wallet for test_locked_wallet_fails test
@@ -70,13 +70,15 @@ class BumpFeeTest(BitcoinTestFramework):
         peer_node, rbf_node = self.nodes
         rbf_node_address = rbf_node.getnewaddress()
 
-        # fund rbf node with 10 coins of 0.001 btc (100,000 satoshis)
+        # fund rbf node with 10 coins of 0.001 sam (100,000 satoshis)
         self.log.info("Mining blocks...")
-        self.generate(peer_node, 110)
+        peer_node.generate(110)
+        self.sync_all()
         for _ in range(25):
             peer_node.sendtoaddress(rbf_node_address, 0.001)
         self.sync_all()
-        self.generate(peer_node, 1)
+        peer_node.generate(1)
+        self.sync_all()
         assert_equal(rbf_node.getbalance(), Decimal("0.025"))
 
         self.log.info("Running tests")
@@ -151,7 +153,7 @@ class BumpFeeTest(BitcoinTestFramework):
         for k, v in {"number": 42, "object": {"foo": "bar"}}.items():
             assert_raises_rpc_error(-3, "Expected type string for estimate_mode, got {}".format(k),
                 rbf_node.bumpfee, rbfid, {"estimate_mode": v})
-        for mode in ["foo", Decimal("3.1415"), "sat/B", "BTC/kB"]:
+        for mode in ["foo", Decimal("3.1415"), "sat/B", "SAM/kB"]:
             assert_raises_rpc_error(-8, 'Invalid estimate_mode parameter, must be one of: "unset", "economical", "conservative"',
                 rbf_node.bumpfee, rbfid, {"estimate_mode": mode})
 
@@ -263,14 +265,6 @@ def test_bumpfee_with_descendant_fails(self, rbf_node, rbf_node_address, dest_ad
     tx = rbf_node.signrawtransactionwithwallet(tx)
     rbf_node.sendrawtransaction(tx["hex"])
     assert_raises_rpc_error(-8, "Transaction has descendants in the wallet", rbf_node.bumpfee, parent_id)
-
-    # create tx with descendant in the mempool by using MiniWallet
-    miniwallet = MiniWallet(rbf_node)
-    parent_id = spend_one_input(rbf_node, miniwallet.get_address())
-    tx = rbf_node.gettransaction(txid=parent_id, verbose=True)['decoded']
-    miniwallet.scan_tx(tx)
-    miniwallet.send_self_transfer(from_node=rbf_node)
-    assert_raises_rpc_error(-8, "Transaction has descendants in the mempool", rbf_node.bumpfee, parent_id)
     self.clear_mempool()
 
 
@@ -278,7 +272,7 @@ def test_small_output_with_feerate_succeeds(self, rbf_node, dest_address):
     self.log.info('Testing small output with feerate bump succeeds')
 
     # Make sure additional inputs exist
-    self.generatetoaddress(rbf_node, COINBASE_MATURITY + 1, rbf_node.getnewaddress())
+    rbf_node.generatetoaddress(COINBASE_MATURITY + 1, rbf_node.getnewaddress())
     rbfid = spend_one_input(rbf_node, dest_address)
     input_list = rbf_node.getrawtransaction(rbfid, 1)["vin"]
     assert_equal(len(input_list), 1)
@@ -311,7 +305,7 @@ def test_small_output_with_feerate_succeeds(self, rbf_node, dest_address):
             if txin["txid"] == original_txin["txid"]
             and txin["vout"] == original_txin["vout"]]
 
-    self.generatetoaddress(rbf_node, 1, rbf_node.getnewaddress())
+    rbf_node.generatetoaddress(1, rbf_node.getnewaddress())
     assert_equal(rbf_node.gettransaction(rbfid)["confirmations"], 1)
     self.clear_mempool()
 
@@ -320,16 +314,16 @@ def test_dust_to_fee(self, rbf_node, dest_address):
     self.log.info('Test that bumped output that is dust is dropped to fee')
     rbfid = spend_one_input(rbf_node, dest_address)
     fulltx = rbf_node.getrawtransaction(rbfid, 1)
-    # The DER formatting used by Bitcoin to serialize ECDSA signatures means that signatures can have a
+    # The DER formatting used by Samcoin to serialize ECDSA signatures means that signatures can have a
     # variable size of 70-72 bytes (or possibly even less), with most being 71 or 72 bytes. The signature
     # in the witness is divided by 4 for the vsize, so this variance can take the weight across a 4-byte
     # boundary. Thus expected transaction size (p2wpkh, 1 input, 2 outputs) is 140-141 vbytes, usually 141.
     if not 140 <= fulltx["vsize"] <= 141:
         raise AssertionError("Invalid tx vsize of {} (140-141 expected), full tx: {}".format(fulltx["vsize"], fulltx))
     # Bump with fee_rate of 350.25 sat/vB vbytes to create dust.
-    # Expected fee is 141 vbytes * fee_rate 0.00350250 BTC / 1000 vbytes = 0.00049385 BTC.
-    # or occasionally 140 vbytes * fee_rate 0.00350250 BTC / 1000 vbytes = 0.00049035 BTC.
-    # Dust should be dropped to the fee, so actual bump fee is 0.00050000 BTC.
+    # Expected fee is 141 vbytes * fee_rate 0.00350250 SAM / 1000 vbytes = 0.00049385 SAM.
+    # or occasionally 140 vbytes * fee_rate 0.00350250 SAM / 1000 vbytes = 0.00049035 SAM.
+    # Dust should be dropped to the fee, so actual bump fee is 0.00050000 SAM.
     bumped_tx = rbf_node.bumpfee(rbfid, {"fee_rate": 350.25})
     full_bumped_tx = rbf_node.getrawtransaction(bumped_tx["txid"], 1)
     assert_equal(bumped_tx["fee"], Decimal("0.00050000"))
@@ -366,7 +360,7 @@ def test_settxfee(self, rbf_node, dest_address):
 def test_maxtxfee_fails(self, rbf_node, dest_address):
     self.log.info('Test that bumpfee fails when it hits -maxtxfee')
     # size of bumped transaction (p2wpkh, 1 input, 2 outputs): 141 vbytes
-    # expected bump fee of 141 vbytes * 0.00200000 BTC / 1000 vbytes = 0.00002820 BTC
+    # expected bump fee of 141 vbytes * 0.00200000 SAM / 1000 vbytes = 0.00002820 SAM
     # which exceeds maxtxfee and is expected to raise
     self.restart_node(1, ['-maxtxfee=0.000025'] + self.extra_args[1])
     rbf_node.walletpassphrase(WALLET_PASSPHRASE, WALLET_PASSPHRASE_TIMEOUT)
@@ -439,7 +433,8 @@ def test_watchonly_psbt(self, peer_node, rbf_node, dest_address):
     funding_address1 = watcher.getnewaddress(address_type='bech32')
     funding_address2 = watcher.getnewaddress(address_type='bech32')
     peer_node.sendmany("", {funding_address1: 0.001, funding_address2: 0.001})
-    self.generate(peer_node, 1)
+    peer_node.generate(1)
+    self.sync_all()
 
     # Create single-input PSBT for transaction to be bumped
     psbt = watcher.walletcreatefundedpsbt([], {dest_address: 0.0005}, 0, {"fee_rate": 1}, True)['psbt']
@@ -524,7 +519,7 @@ def test_unconfirmed_not_spendable(self, rbf_node, rbf_node_address):
     assert_equal([t for t in rbf_node.listunspent(minconf=0, include_unsafe=False) if t["txid"] == rbfid], [])
 
     # check that the main output from the rbf tx is spendable after confirmed
-    self.generate(rbf_node, 1, sync_fun=self.no_op)
+    rbf_node.generate(1)
     assert_equal(
         sum(1 for t in rbf_node.listunspent(minconf=0, include_unsafe=False)
             if t["txid"] == rbfid and t["address"] == rbf_node_address and t["spendable"]), 1)
@@ -534,7 +529,7 @@ def test_unconfirmed_not_spendable(self, rbf_node, rbf_node_address):
 def test_bumpfee_metadata(self, rbf_node, dest_address):
     self.log.info('Test that bumped txn metadata persists to new txn record')
     assert(rbf_node.getbalance() < 49)
-    self.generatetoaddress(rbf_node, 101, rbf_node.getnewaddress())
+    rbf_node.generatetoaddress(101, rbf_node.getnewaddress())
     rbfid = rbf_node.sendtoaddress(dest_address, 49, "comment value", "to value")
     bumped_tx = rbf_node.bumpfee(rbfid)
     bumped_wtx = rbf_node.gettransaction(bumped_tx["txid"])
@@ -587,10 +582,14 @@ def spend_one_input(node, dest_address, change_size=Decimal("0.00049000")):
 
 
 def submit_block_with_tx(node, tx):
+    ctx = tx_from_hex(tx)
     tip = node.getbestblockhash()
     height = node.getblockcount() + 1
     block_time = node.getblockheader(tip)["mediantime"] + 1
-    block = create_block(int(tip, 16), create_coinbase(height), block_time, txlist=[tx])
+    block = create_block(int(tip, 16), create_coinbase(height), block_time)
+    block.vtx.append(ctx)
+    block.rehash()
+    block.hashMerkleRoot = block.calc_merkle_root()
     add_witness_commitment(block)
     block.solve()
     node.submitblock(block.serialize().hex())
@@ -600,7 +599,7 @@ def submit_block_with_tx(node, tx):
 def test_no_more_inputs_fails(self, rbf_node, dest_address):
     self.log.info('Test that bumpfee fails when there are no available confirmed outputs')
     # feerate rbf requires confirmed outputs when change output doesn't exist or is insufficient
-    self.generatetoaddress(rbf_node, 1, dest_address)
+    rbf_node.generatetoaddress(1, dest_address)
     # spend all funds, no change output
     rbfid = rbf_node.sendtoaddress(rbf_node.getnewaddress(), rbf_node.getbalance(), "", "", True)
     assert_raises_rpc_error(-4, "Unable to create transaction. Insufficient funds", rbf_node.bumpfee, rbfid)

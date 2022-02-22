@@ -1,11 +1,11 @@
 libsecp256k1
 ============
 
-[![Build Status](https://api.cirrus-ci.com/github/bitcoin-core/secp256k1.svg?branch=master)](https://cirrus-ci.com/github/bitcoin-core/secp256k1)
+[![Build Status](https://api.cirrus-ci.com/github/samcoin-core/secp256k1.svg?branch=master)](https://cirrus-ci.com/github/samcoin-core/secp256k1)
 
 Optimized C library for ECDSA signatures and secret/public key operations on curve secp256k1.
 
-This library is intended to be the highest quality publicly available library for cryptography on the secp256k1 curve. However, the primary focus of its development has been for usage in the Bitcoin system and usage unlike Bitcoin's may be less well tested, verified, or suffer from a less well thought out interface. Correct usage requires some care and consideration that the library is fit for your application's purpose.
+This library is intended to be the highest quality publicly available library for cryptography on the secp256k1 curve. However, the primary focus of its development has been for usage in the Samcoin system and usage unlike Samcoin's may be less well tested, verified, or suffer from a less well thought out interface. Correct usage requires some care and consideration that the library is fit for your application's purpose.
 
 Features:
 * secp256k1 ECDSA signing/verification and key generation.
@@ -17,7 +17,6 @@ Features:
 * Suitable for embedded systems.
 * Optional module for public key recovery.
 * Optional module for ECDH key exchange.
-* Optional module for Schnorr signatures according to [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki) (experimental).
 
 Experimental features have not received enough scrutiny to satisfy the standard of quality of this library but are made available for testing and review by the community. The APIs of these features should not be considered stable.
 
@@ -66,8 +65,17 @@ libsecp256k1 is built using autotools:
     $ ./autogen.sh
     $ ./configure
     $ make
-    $ make check  # run the test suite
+    $ make check
     $ sudo make install  # optional
+
+Exhaustive tests
+-----------
+
+    $ ./exhaustive_tests
+
+With valgrind, you might need to increase the max stack size:
+
+    $ valgrind --max-stackframe=2500000 ./exhaustive_tests
 
 Test coverage
 -----------
@@ -88,20 +96,7 @@ To create a report, `gcovr` is recommended, as it includes branch coverage repor
 
 To create a HTML report with coloured and annotated source code:
 
-    $ mkdir -p coverage
-    $ gcovr --exclude 'src/bench*' --html --html-details -o coverage/coverage.html
-
-Benchmark
-------------
-If configured with `--enable-benchmark` (which is the default), binaries for benchmarking the libsecp256k1 functions will be present in the root directory after the build.
-
-To print the benchmark result to the command line:
-
-    $ ./bench_name
-
-To create a CSV file for the benchmark result :
-
-    $ ./bench_name | sed '2d;s/ \{1,\}//g' > bench_name.csv
+    $ gcovr --exclude 'src/bench*' --html --html-details -o coverage.html
 
 Reporting a vulnerability
 ------------

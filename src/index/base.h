@@ -1,15 +1,16 @@
-// Copyright (c) 2017-2021 The Bitcoin Core developers
+// Copyright (c) 2017-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_INDEX_BASE_H
-#define BITCOIN_INDEX_BASE_H
+#ifndef SAMCOIN_INDEX_BASE_H
+#define SAMCOIN_INDEX_BASE_H
 
 #include <dbwrapper.h>
+#include <primitives/block.h>
+#include <primitives/transaction.h>
 #include <threadinterrupt.h>
 #include <validationinterface.h>
 
-class CBlock;
 class CBlockIndex;
 class CChainState;
 
@@ -40,10 +41,10 @@ protected:
         DB(const fs::path& path, size_t n_cache_size,
            bool f_memory = false, bool f_wipe = false, bool f_obfuscate = false);
 
-        /// Read block locator of the chain that the index is in sync with.
+        /// Read block locator of the chain that the txindex is in sync with.
         bool ReadBestBlock(CBlockLocator& locator) const;
 
-        /// Write block locator of the chain that the index is in sync with.
+        /// Write block locator of the chain that the txindex is in sync with.
         void WriteBestBlock(CDBBatch& batch, const CBlockLocator& locator);
     };
 
@@ -127,4 +128,4 @@ public:
     IndexSummary GetSummary() const;
 };
 
-#endif // BITCOIN_INDEX_BASE_H
+#endif // SAMCOIN_INDEX_BASE_H

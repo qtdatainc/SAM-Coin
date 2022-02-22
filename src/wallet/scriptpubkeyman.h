@@ -1,9 +1,9 @@
-// Copyright (c) 2019-2021 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_WALLET_SCRIPTPUBKEYMAN_H
-#define BITCOIN_WALLET_SCRIPTPUBKEYMAN_H
+#ifndef SAMCOIN_WALLET_SCRIPTPUBKEYMAN_H
+#define SAMCOIN_WALLET_SCRIPTPUBKEYMAN_H
 
 #include <psbt.h>
 #include <script/descriptor.h>
@@ -19,13 +19,11 @@
 
 #include <boost/signals2/signal.hpp>
 
-#include <optional>
 #include <unordered_map>
 
 enum class OutputType;
 struct bilingual_str;
 
-namespace wallet {
 // Wallet storage things that ScriptPubKeyMans need in order to be able to store things to the wallet database.
 // It provides access to things that are part of the entire wallet and not specific to a ScriptPubKeyMan such as
 // wallet flags, wallet version, encryption keys, encryption status, and the database itself. This allows a
@@ -57,7 +55,7 @@ std::vector<CKeyID> GetAffectedKeys(const CScript& spk, const SigningProvider& p
  * are sets of keys that have not yet been used to provide addresses or receive
  * change.
  *
- * The Bitcoin Core wallet was originally a collection of unrelated private
+ * The Samcoin Core wallet was originally a collection of unrelated private
  * keys with their associated addresses. If a non-HD wallet generated a
  * key/address, gave that address out and then restored a backup from before
  * that key's generation, then any funds sent to that address would be
@@ -150,10 +148,15 @@ public:
     }
 };
 
-struct WalletDestination
+class KeyIDHasher
 {
-    CTxDestination dest;
-    std::optional<bool> internal;
+public:
+    KeyIDHasher() {}
+
+    size_t operator()(const CKeyID& id) const
+    {
+        return id.GetUint64(0);
+    }
 };
 
 /*
@@ -171,14 +174,14 @@ protected:
 public:
     explicit ScriptPubKeyMan(WalletStorage& storage) : m_storage(storage) {}
     virtual ~ScriptPubKeyMan() {};
-    virtual bool GetNewDestination(const OutputType type, CTxDestination& dest, bilingual_str& error) { return false; }
+    virtual bool GetNewDestination(const OutputType type, CTxDestination& dest, std::string& error) { return false; }
     virtual isminetype IsMine(const CScript& script) const { return ISMINE_NO; }
 
     //! Check that the given decryption key is valid for this ScriptPubKeyMan, i.e. it decrypts all of the keys handled by it.
     virtual bool CheckDecryptionKey(const CKeyingMaterial& master_key, bool accept_no_keys = false) { return false; }
     virtual bool Encrypt(const CKeyingMaterial& master_key, WalletBatch* batch) { return false; }
 
-    virtual bool GetReservedDestination(const OutputType type, bool internal, CTxDestination& address, int64_t& index, CKeyPool& keypool, bilingual_str& error) { return false; }
+    virtual bool GetReservedDestination(const OutputType type, bool internal, CTxDestination& address, int64_t& index, CKeyPool& keypool, std::string& error) { return false; }
     virtual void KeepDestination(int64_t index, const OutputType& type) {}
     virtual void ReturnDestination(int64_t index, bool internal, const CTxDestination& addr) {}
 
@@ -188,14 +191,8 @@ public:
       */
     virtual bool TopUp(unsigned int size = 0) { return false; }
 
-    /** Mark unused addresses as being used
-     * Affects all keys up to and including the one determined by provided script.
-     *
-     * @param script determines the last key to mark as used
-     *
-     * @return All of the addresses affected
-     */
-    virtual std::vector<WalletDestination> MarkUnusedAddresses(const CScript& script) { return {}; }
+    //! Mark unused addresses as being used
+    virtual void MarkUnusedAddresses(const CScript& script) {}
 
     /** Sets up the key generation stuff, i.e. generates new HD seeds and sets them as active.
       * Returns false if already setup or setup fails, true if setup is successful
@@ -217,7 +214,7 @@ public:
     //! The action to do when the DB needs rewrite
     virtual void RewriteDB() {}
 
-    virtual std::optional<int64_t> GetOldestKeyPoolTime() const { return GetTime(); }
+    virtual int64_t GetOldestKeyPoolTime() const { return GetTime(); }
 
     virtual unsigned int GetKeyPoolSize() const { return 0; }
 
@@ -233,11 +230,11 @@ public:
     virtual bool CanProvide(const CScript& script, SignatureData& sigdata) { return false; }
 
     /** Creates new signatures and adds them to the transaction. Returns whether all inputs were signed */
-    virtual bool SignTransaction(CMutableTransaction& tx, const std::map<COutPoint, Coin>& coins, int sighash, std::map<int, bilingual_str>& input_errors) const { return false; }
+    virtual bool SignTransaction(CMutableTransaction& tx, const std::map<COutPoint, Coin>& coins, int sighash, std::map<int, std::string>& input_errors) const { return false; }
     /** Sign a message with the given script */
     virtual SigningResult SignMessage(const std::string& message, const PKHash& pkhash, std::string& str_sig) const { return SigningResult::SIGNING_FAILED; };
     /** Adds script and derivation path information to a PSBT, and optionally signs it. */
-    virtual TransactionError FillPSBT(PartiallySignedTransaction& psbt, const PrecomputedTransactionData& txdata, int sighash_type = SIGHASH_DEFAULT, bool sign = true, bool bip32derivs = false, int* n_signed = nullptr, bool finalize = true) const { return TransactionError::INVALID_PSBT; }
+    virtual TransactionError FillPSBT(PartiallySignedTransaction& psbt, const PrecomputedTransactionData& txdata, int sighash_type = 1 /* SIGHASH_ALL */, bool sign = true, bool bip32derivs = false, int* n_signed = nullptr) const { return TransactionError::INVALID_PSBT; }
 
     virtual uint256 GetID() const { return uint256(); }
 
@@ -358,19 +355,19 @@ private:
 public:
     using ScriptPubKeyMan::ScriptPubKeyMan;
 
-    bool GetNewDestination(const OutputType type, CTxDestination& dest, bilingual_str& error) override;
+    bool GetNewDestination(const OutputType type, CTxDestination& dest, std::string& error) override;
     isminetype IsMine(const CScript& script) const override;
 
     bool CheckDecryptionKey(const CKeyingMaterial& master_key, bool accept_no_keys = false) override;
     bool Encrypt(const CKeyingMaterial& master_key, WalletBatch* batch) override;
 
-    bool GetReservedDestination(const OutputType type, bool internal, CTxDestination& address, int64_t& index, CKeyPool& keypool, bilingual_str& error) override;
+    bool GetReservedDestination(const OutputType type, bool internal, CTxDestination& address, int64_t& index, CKeyPool& keypool, std::string& error) override;
     void KeepDestination(int64_t index, const OutputType& type) override;
     void ReturnDestination(int64_t index, bool internal, const CTxDestination&) override;
 
     bool TopUp(unsigned int size = 0) override;
 
-    std::vector<WalletDestination> MarkUnusedAddresses(const CScript& script) override;
+    void MarkUnusedAddresses(const CScript& script) override;
 
     //! Upgrade stored CKeyMetadata objects to store key origin info as KeyOriginInfo
     void UpgradeKeyMetadata();
@@ -385,7 +382,7 @@ public:
 
     void RewriteDB() override;
 
-    std::optional<int64_t> GetOldestKeyPoolTime() const override;
+    int64_t GetOldestKeyPoolTime() const override;
     size_t KeypoolCountExternalKeys() const;
     unsigned int GetKeyPoolSize() const override;
 
@@ -399,9 +396,9 @@ public:
 
     bool CanProvide(const CScript& script, SignatureData& sigdata) override;
 
-    bool SignTransaction(CMutableTransaction& tx, const std::map<COutPoint, Coin>& coins, int sighash, std::map<int, bilingual_str>& input_errors) const override;
+    bool SignTransaction(CMutableTransaction& tx, const std::map<COutPoint, Coin>& coins, int sighash, std::map<int, std::string>& input_errors) const override;
     SigningResult SignMessage(const std::string& message, const PKHash& pkhash, std::string& str_sig) const override;
-    TransactionError FillPSBT(PartiallySignedTransaction& psbt, const PrecomputedTransactionData& txdata, int sighash_type = SIGHASH_DEFAULT, bool sign = true, bool bip32derivs = false, int* n_signed = nullptr, bool finalize = true) const override;
+    TransactionError FillPSBT(PartiallySignedTransaction& psbt, const PrecomputedTransactionData& txdata, int sighash_type = 1 /* SIGHASH_ALL */, bool sign = true, bool bip32derivs = false, int* n_signed = nullptr) const override;
 
     uint256 GetID() const override;
 
@@ -495,13 +492,9 @@ public:
     void LearnAllRelatedScripts(const CPubKey& key);
 
     /**
-     * Marks all keys in the keypool up to and including the provided key as used.
-     *
-     * @param keypool_id determines the last key to mark as used
-     *
-     * @return All affected keys
+     * Marks all keys in the keypool up to and including reserve_key as used.
      */
-    std::vector<CKeyPool> MarkReserveKeysAsUsed(int64_t keypool_id) EXCLUSIVE_LOCKS_REQUIRED(cs_KeyStore);
+    void MarkReserveKeysAsUsed(int64_t keypool_id) EXCLUSIVE_LOCKS_REQUIRED(cs_KeyStore);
     const std::map<CKeyID, int64_t>& GetAllReserveKeys() const { return m_pool_key_to_index; }
 
     std::set<CKeyID> GetKeys() const override;
@@ -566,13 +559,13 @@ public:
 
     mutable RecursiveMutex cs_desc_man;
 
-    bool GetNewDestination(const OutputType type, CTxDestination& dest, bilingual_str& error) override;
+    bool GetNewDestination(const OutputType type, CTxDestination& dest, std::string& error) override;
     isminetype IsMine(const CScript& script) const override;
 
     bool CheckDecryptionKey(const CKeyingMaterial& master_key, bool accept_no_keys = false) override;
     bool Encrypt(const CKeyingMaterial& master_key, WalletBatch* batch) override;
 
-    bool GetReservedDestination(const OutputType type, bool internal, CTxDestination& address, int64_t& index, CKeyPool& keypool, bilingual_str& error) override;
+    bool GetReservedDestination(const OutputType type, bool internal, CTxDestination& address, int64_t& index, CKeyPool& keypool, std::string& error) override;
     void ReturnDestination(int64_t index, bool internal, const CTxDestination& addr) override;
 
     // Tops up the descriptor cache and m_map_script_pub_keys. The cache is stored in the wallet file
@@ -581,7 +574,7 @@ public:
     // (with or without private keys), the "keypool" is a single xpub.
     bool TopUp(unsigned int size = 0) override;
 
-    std::vector<WalletDestination> MarkUnusedAddresses(const CScript& script) override;
+    void MarkUnusedAddresses(const CScript& script) override;
 
     bool IsHDEnabled() const override;
 
@@ -595,7 +588,7 @@ public:
 
     bool HavePrivateKeys() const override;
 
-    std::optional<int64_t> GetOldestKeyPoolTime() const override;
+    int64_t GetOldestKeyPoolTime() const override;
     unsigned int GetKeyPoolSize() const override;
 
     int64_t GetTimeFirstKey() const override;
@@ -608,9 +601,9 @@ public:
 
     bool CanProvide(const CScript& script, SignatureData& sigdata) override;
 
-    bool SignTransaction(CMutableTransaction& tx, const std::map<COutPoint, Coin>& coins, int sighash, std::map<int, bilingual_str>& input_errors) const override;
+    bool SignTransaction(CMutableTransaction& tx, const std::map<COutPoint, Coin>& coins, int sighash, std::map<int, std::string>& input_errors) const override;
     SigningResult SignMessage(const std::string& message, const PKHash& pkhash, std::string& str_sig) const override;
-    TransactionError FillPSBT(PartiallySignedTransaction& psbt, const PrecomputedTransactionData& txdata, int sighash_type = SIGHASH_DEFAULT, bool sign = true, bool bip32derivs = false, int* n_signed = nullptr, bool finalize = true) const override;
+    TransactionError FillPSBT(PartiallySignedTransaction& psbt, const PrecomputedTransactionData& txdata, int sighash_type = 1 /* SIGHASH_ALL */, bool sign = true, bool bip32derivs = false, int* n_signed = nullptr) const override;
 
     uint256 GetID() const override;
 
@@ -628,10 +621,9 @@ public:
     const WalletDescriptor GetWalletDescriptor() const EXCLUSIVE_LOCKS_REQUIRED(cs_desc_man);
     const std::vector<CScript> GetScriptPubKeys() const;
 
-    bool GetDescriptorString(std::string& out, const bool priv) const;
+    bool GetDescriptorString(std::string& out) const;
 
     void UpgradeDescriptorCache();
 };
-} // namespace wallet
 
-#endif // BITCOIN_WALLET_SCRIPTPUBKEYMAN_H
+#endif // SAMCOIN_WALLET_SCRIPTPUBKEYMAN_H

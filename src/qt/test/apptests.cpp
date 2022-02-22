@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 The Bitcoin Core developers
+// Copyright (c) 2018-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,24 +6,23 @@
 
 #include <chainparams.h>
 #include <key.h>
-#include <qt/bitcoin.h>
-#include <qt/bitcoingui.h>
+#include <qt/samcoin.h>
+#include <qt/samcoingui.h>
 #include <qt/networkstyle.h>
 #include <qt/rpcconsole.h>
 #include <shutdown.h>
 #include <test/util/setup_common.h>
+#include <univalue.h>
 #include <validation.h>
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <QAction>
 #include <QLineEdit>
-#include <QRegularExpression>
 #include <QScopedPointer>
 #include <QSignalSpy>
-#include <QString>
 #include <QTest>
 #include <QTextEdit>
 #include <QtGlobal>
@@ -31,13 +30,6 @@
 #include <QtTest/QtTestGui>
 
 namespace {
-//! Regex find a string group inside of the console output
-QString FindInConsole(const QString& output, const QString& pattern)
-{
-    const QRegularExpression re(pattern);
-    return re.match(output).captured(1);
-}
-
 //! Call getblockchaininfo RPC and check first field of JSON output.
 void TestRpcCommand(RPCConsole* console)
 {
@@ -49,13 +41,14 @@ void TestRpcCommand(RPCConsole* console)
     QTest::keyClick(lineEdit, Qt::Key_Return);
     QVERIFY(mw_spy.wait(1000));
     QCOMPARE(mw_spy.count(), 4);
-    const QString output = messagesWidget->toPlainText();
-    const QString pattern = QStringLiteral("\"chain\": \"(\\w+)\"");
-    QCOMPARE(FindInConsole(output, pattern), QString("regtest"));
+    QString output = messagesWidget->toPlainText();
+    UniValue value;
+    value.read(output.right(output.size() - output.lastIndexOf(QChar::ObjectReplacementCharacter) - 1).toStdString());
+    QCOMPARE(value["chain"].get_str(), std::string("regtest"));
 }
 } // namespace
 
-//! Entry point for BitcoinApplication tests.
+//! Entry point for SamcoinApplication tests.
 void AppTests::appTests()
 {
 #ifdef Q_OS_MAC
@@ -65,7 +58,7 @@ void AppTests::appTests()
         // and fails to handle returned nulls
         // (https://bugreports.qt.io/browse/QTBUG-49686).
         QWARN("Skipping AppTests on mac build with 'minimal' platform set due to Qt bugs. To run AppTests, invoke "
-              "with 'QT_QPA_PLATFORM=cocoa test_bitcoin-qt' on mac, or else use a linux or windows build.");
+              "with 'QT_QPA_PLATFORM=cocoa test_samcoin-qt' on mac, or else use a linux or windows build.");
         return;
     }
 #endif
@@ -81,7 +74,7 @@ void AppTests::appTests()
     QScopedPointer<const NetworkStyle> style(NetworkStyle::instantiate(Params().NetworkIDString()));
     m_app.setupPlatformStyle();
     m_app.createWindow(style.data());
-    connect(&m_app, &BitcoinApplication::windowShown, this, &AppTests::guiTests);
+    connect(&m_app, &SamcoinApplication::windowShown, this, &AppTests::guiTests);
     expectCallback("guiTests");
     m_app.baseInitialize();
     m_app.requestInitialize();
@@ -94,11 +87,11 @@ void AppTests::appTests()
     AbortShutdown();
 }
 
-//! Entry point for BitcoinGUI tests.
-void AppTests::guiTests(BitcoinGUI* window)
+//! Entry point for SamcoinGUI tests.
+void AppTests::guiTests(SamcoinGUI* window)
 {
     HandleCallback callback{"guiTests", *this};
-    connect(window, &BitcoinGUI::consoleShown, this, &AppTests::consoleTests);
+    connect(window, &SamcoinGUI::consoleShown, this, &AppTests::consoleTests);
     expectCallback("consoleTests");
     QAction* action = window->findChild<QAction*>("openRPCConsoleAction");
     action->activate(QAction::Trigger);

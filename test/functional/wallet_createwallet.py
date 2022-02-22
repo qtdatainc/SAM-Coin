@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2021 The Bitcoin Core developers
+# Copyright (c) 2018-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test createwallet arguments.
@@ -8,14 +8,14 @@
 from test_framework.address import key_to_p2wpkh
 from test_framework.descriptors import descsum_create
 from test_framework.key import ECKey
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
 from test_framework.wallet_util import bytes_to_wif, generate_wif_key
 
-class CreateWalletTest(BitcoinTestFramework):
+class CreateWalletTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
 
@@ -24,7 +24,7 @@ class CreateWalletTest(BitcoinTestFramework):
 
     def run_test(self):
         node = self.nodes[0]
-        self.generate(node, 1) # Leave IBD for sethdseed
+        node.generate(1) # Leave IBD for sethdseed
 
         self.nodes[0].createwallet(wallet_name='w0')
         w0 = node.get_wallet_rpc('w0')
@@ -146,7 +146,7 @@ class CreateWalletTest(BitcoinTestFramework):
         w6.keypoolrefill(1)
         # There should only be 1 key for legacy, 3 for descriptors
         walletinfo = w6.getwalletinfo()
-        keys = 4 if self.options.descriptors else 1
+        keys = 3 if self.options.descriptors else 1
         assert_equal(walletinfo['keypoolsize'], keys)
         assert_equal(walletinfo['keypoolsize_hd_internal'], keys)
         # Allow empty passphrase, but there should be a warning

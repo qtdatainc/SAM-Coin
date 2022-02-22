@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,7 +9,6 @@
 #include <wallet/wallet.h>
 
 
-namespace wallet {
 CAmount GetRequiredFee(const CWallet& wallet, unsigned int nTxBytes)
 {
     return GetRequiredFeeRate(wallet).GetFee(nTxBytes);
@@ -91,4 +90,3 @@ CFeeRate GetDiscardRate(const CWallet& wallet)
     discard_rate = std::max(discard_rate, wallet.chain().relayDustFee());
     return discard_rate;
 }
-} // namespace wallet

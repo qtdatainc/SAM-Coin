@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # Copyright (c) 2010 ArtForz -- public domain half-a-node
 # Copyright (c) 2012 Jeff Garzik
-# Copyright (c) 2010-2021 The Bitcoin Core developers
+# Copyright (c) 2010-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Bitcoin test framework primitive and message structures
+"""Samcoin test framework primitive and message structures
 
 CBlock, CTransaction, CBlockHeader, CTxIn, CTxOut, etc....:
     data structures that should map to corresponding structures in
-    bitcoin/primitives
+    samcoin/primitives
 
 msg_block, msg_tx, msg_headers, etc.:
     data structures that represent network messages
@@ -19,6 +19,7 @@ Classes use __slots__ to ensure extraneous attributes aren't accidentally added
 by tests, compromising their intended effect.
 """
 from base64 import b32decode, b32encode
+from codecs import encode
 import copy
 import hashlib
 from io import BytesIO
@@ -29,18 +30,17 @@ import struct
 import time
 
 from test_framework.siphash import siphash256
-from test_framework.util import assert_equal
+from test_framework.util import hex_str_to_bytes, assert_equal
 
 MAX_LOCATOR_SZ = 101
-MAX_BLOCK_WEIGHT = 4000000
+MAX_BLOCK_BASE_SIZE = 1000000
 MAX_BLOOM_FILTER_SIZE = 36000
 MAX_BLOOM_HASH_FUNCS = 50
 
-COIN = 100000000  # 1 btc in satoshis
+COIN = 100000000  # 1 sam in satoshis
 MAX_MONEY = 21000000 * COIN
 
 BIP125_SEQUENCE_NUMBER = 0xfffffffd  # Sequence number that is rbf-opt-in (BIP 125) and csv-opt-out (BIP 68)
-SEQUENCE_FINAL = 0xffffffff  # Sequence number that disables nLockTime if set for every input of a tx
 
 MAX_PROTOCOL_MESSAGE_LENGTH = 4000000  # Maximum length of incoming protocol messages
 MAX_HEADERS_RESULTS = 2000  # Number of headers sent in one getheaders result
@@ -65,14 +65,12 @@ FILTER_TYPE_BASIC = 0
 
 WITNESS_SCALE_FACTOR = 4
 
-
+# Serialization/deserialization tools
 def sha256(s):
-    return hashlib.sha256(s).digest()
-
+    return hashlib.new('sha256', s).digest()
 
 def hash256(s):
     return sha256(sha256(s))
-
 
 def ser_compact_size(l):
     r = b""
@@ -199,7 +197,7 @@ def from_hex(obj, hex_string):
     Note that there is no complementary helper like e.g. `to_hex` for the
     inverse operation. To serialize a message object to a hex string, simply
     use obj.serialize().hex()"""
-    obj.deserialize(BytesIO(bytes.fromhex(hex_string)))
+    obj.deserialize(BytesIO(hex_str_to_bytes(hex_string)))
     return obj
 
 
@@ -208,13 +206,13 @@ def tx_from_hex(hex_string):
     return from_hex(CTransaction(), hex_string)
 
 
-# Objects that map to bitcoind objects, which can be serialized/deserialized
+# Objects that map to samcoind objects, which can be serialized/deserialized
 
 
 class CAddress:
     __slots__ = ("net", "ip", "nServices", "port", "time")
 
-    # see https://github.com/bitcoin/bips/blob/master/bip-0155.mediawiki
+    # see https://github.com/samcoin/bips/blob/master/bip-0155.mediawiki
     NET_IPV4 = 1
     NET_I2P = 5
 
@@ -355,7 +353,7 @@ class CBlockLocator:
 
     def serialize(self):
         r = b""
-        r += struct.pack("<i", 0)  # Bitcoin Core ignores version field. Set it to 0.
+        r += struct.pack("<i", 0)  # Samcoin Core ignores version field. Set it to 0.
         r += ser_uint256_vector(self.vHave)
         return r
 
@@ -509,7 +507,7 @@ class CTransaction:
 
     def __init__(self, tx=None):
         if tx is None:
-            self.nVersion = 2
+            self.nVersion = 1
             self.vin = []
             self.vout = []
             self.wit = CTxWitness()
@@ -532,7 +530,7 @@ class CTransaction:
         if len(self.vin) == 0:
             flags = struct.unpack("<B", f.read(1))[0]
             # Not sure why flags can't be zero, but this
-            # matches the implementation in bitcoind
+            # matches the implementation in samcoind
             if (flags != 0):
                 self.vin = deser_vector(f, CTxIn)
                 self.vout = deser_vector(f, CTxOut)
@@ -610,15 +608,12 @@ class CTransaction:
                 return False
         return True
 
-    # Calculate the transaction weight using witness and non-witness
+    # Calculate the virtual transaction size using witness and non-witness
     # serialization size (does NOT use sigops).
-    def get_weight(self):
+    def get_vsize(self):
         with_witness_size = len(self.serialize_with_witness())
         without_witness_size = len(self.serialize_without_witness())
-        return (WITNESS_SCALE_FACTOR - 1) * without_witness_size + with_witness_size
-
-    def get_vsize(self):
-        return math.ceil(self.get_weight() / WITNESS_SCALE_FACTOR)
+        return math.ceil(((WITNESS_SCALE_FACTOR - 1) * without_witness_size + with_witness_size) / WITNESS_SCALE_FACTOR)
 
     def __repr__(self):
         return "CTransaction(nVersion=%i vin=%s vout=%s wit=%s nLockTime=%i)" \
@@ -644,7 +639,7 @@ class CBlockHeader:
             self.calc_sha256()
 
     def set_null(self):
-        self.nVersion = 4
+        self.nVersion = 1
         self.hashPrevBlock = 0
         self.hashMerkleRoot = 0
         self.nTime = 0
@@ -683,7 +678,7 @@ class CBlockHeader:
             r += struct.pack("<I", self.nBits)
             r += struct.pack("<I", self.nNonce)
             self.sha256 = uint256_from_str(hash256(r))
-            self.hash = hash256(r)[::-1].hex()
+            self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
 
     def rehash(self):
         self.sha256 = None
@@ -765,13 +760,6 @@ class CBlock(CBlockHeader):
         while self.sha256 > target:
             self.nNonce += 1
             self.rehash()
-
-    # Calculate the block weight using witness and non-witness
-    # serialization size (does NOT use sigops).
-    def get_weight(self):
-        with_witness_size = len(self.serialize(with_witness=True))
-        without_witness_size = len(self.serialize(with_witness=False))
-        return (WITNESS_SCALE_FACTOR - 1) * without_witness_size + with_witness_size
 
     def __repr__(self):
         return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" \
@@ -1082,7 +1070,7 @@ class msg_version:
         self.nStartingHeight = struct.unpack("<i", f.read(4))[0]
 
         # Relay field is optional for version 70001 onwards
-        # But, unconditionally check it to match behaviour in bitcoind
+        # But, unconditionally check it to match behaviour in samcoind
         try:
             self.relay = struct.unpack("<b", f.read(1))[0]
         except struct.error:
@@ -1463,7 +1451,7 @@ class msg_headers:
         self.headers = headers if headers is not None else []
 
     def deserialize(self, f):
-        # comment in bitcoind indicates these should be deserialized as blocks
+        # comment in samcoind indicates these should be deserialized as blocks
         blocks = deser_vector(f, CBlock)
         for x in blocks:
             self.headers.append(CBlockHeader(x))

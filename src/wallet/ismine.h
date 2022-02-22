@@ -1,26 +1,23 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2019 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_WALLET_ISMINE_H
-#define BITCOIN_WALLET_ISMINE_H
+#ifndef SAMCOIN_WALLET_ISMINE_H
+#define SAMCOIN_WALLET_ISMINE_H
 
 #include <script/standard.h>
 
+#include <stdint.h>
 #include <bitset>
-#include <cstdint>
-#include <type_traits>
 
-class CScript;
-
-namespace wallet {
 class CWallet;
+class CScript;
 
 /**
  * IsMine() return codes, which depend on ScriptPubKeyMan implementation.
  * Not every ScriptPubKeyMan covers all types, please refer to
- * https://github.com/bitcoin/bitcoin/blob/master/doc/release-notes/release-notes-0.21.0.md#ismine-semantics
+ * https://github.com/samcoin/samcoin/blob/master/doc/release-notes/release-notes-0.21.0.md#ismine-semantics
  * for better understanding.
  *
  * For LegacyScriptPubKeyMan,
@@ -38,7 +35,8 @@ class CWallet;
  * ISMINE_USED: the scriptPubKey corresponds to a used address owned by the wallet user.
  *
  */
-enum isminetype : unsigned int {
+enum isminetype : unsigned int
+{
     ISMINE_NO         = 0,
     ISMINE_WATCH_ONLY = 1 << 0,
     ISMINE_SPENDABLE  = 1 << 1,
@@ -48,7 +46,7 @@ enum isminetype : unsigned int {
     ISMINE_ENUM_ELEMENTS,
 };
 /** used for bitflags of isminetype */
-using isminefilter = std::underlying_type<isminetype>::type;
+typedef uint8_t isminefilter;
 
 /**
  * Cachable amount subdivided into watchonly and spendable parts.
@@ -68,6 +66,5 @@ struct CachableAmount
         m_value[filter] = value;
     }
 };
-} // namespace wallet
 
-#endif // BITCOIN_WALLET_ISMINE_H
+#endif // SAMCOIN_WALLET_ISMINE_H

@@ -1,9 +1,9 @@
-// Copyright (c) 2021 The Bitcoin Core developers
+// Copyright (c) 2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UTIL_THREAD_H
-#define BITCOIN_UTIL_THREAD_H
+#ifndef SAMCOIN_UTIL_THREAD_H
+#define SAMCOIN_UTIL_THREAD_H
 
 #include <functional>
 
@@ -15,4 +15,4 @@ void TraceThread(const char* thread_name, std::function<void()> thread_func);
 
 } // namespace util
 
-#endif // BITCOIN_UTIL_THREAD_H
+#endif // SAMCOIN_UTIL_THREAD_H

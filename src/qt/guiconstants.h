@@ -1,25 +1,19 @@
-// Copyright (c) 2011-2020 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_GUICONSTANTS_H
-#define BITCOIN_QT_GUICONSTANTS_H
+#ifndef SAMCOIN_QT_GUICONSTANTS_H
+#define SAMCOIN_QT_GUICONSTANTS_H
 
-#include <chrono>
 #include <cstdint>
 
-using namespace std::chrono_literals;
-
-/* A delay between model updates */
-static constexpr auto MODEL_UPDATE_DELAY{250ms};
-
-/* A delay between shutdown pollings */
-static constexpr auto SHUTDOWN_POLLING_DELAY{200ms};
+/* Milliseconds between model updates */
+static const int MODEL_UPDATE_DELAY = 250;
 
 /* AskPassphraseDialog -- Maximum passphrase length */
 static const int MAX_PASSPHRASE_SIZE = 1024;
 
-/* BitcoinGUI -- Size of icons in status bar */
+/* SamcoinGUI -- Size of icons in status bar */
 static const int STATUSBAR_ICONSIZE = 16;
 
 static const bool DEFAULT_SPLASHSCREEN = true;
@@ -33,6 +27,8 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 #define COLOR_NEGATIVE QColor(255, 0, 0)
 /* Transaction list -- bare address (without label) */
 #define COLOR_BAREADDRESS QColor(140, 140, 140)
+/* Transaction list -- TX status decoration - open until date */
+#define COLOR_TX_STATUS_OPENUNTILDATE QColor(64, 64, 255)
 /* Transaction list -- TX status decoration - danger, tx needs attention */
 #define COLOR_TX_STATUS_DANGER QColor(200, 100, 100)
 /* Transaction list -- TX status decoration - default color */
@@ -46,12 +42,12 @@ static const int TOOLTIP_WRAP_THRESHOLD = 80;
 /* Number of frames in spinner animation */
 #define SPINNER_FRAMES 36
 
-#define QAPP_ORG_NAME "Bitcoin"
-#define QAPP_ORG_DOMAIN "bitcoin.org"
-#define QAPP_APP_NAME_DEFAULT "Bitcoin-Qt"
-#define QAPP_APP_NAME_TESTNET "Bitcoin-Qt-testnet"
-#define QAPP_APP_NAME_SIGNET "Bitcoin-Qt-signet"
-#define QAPP_APP_NAME_REGTEST "Bitcoin-Qt-regtest"
+#define QAPP_ORG_NAME "Samcoin"
+#define QAPP_ORG_DOMAIN "samcoin.org"
+#define QAPP_APP_NAME_DEFAULT "Samcoin-Qt"
+#define QAPP_APP_NAME_TESTNET "Samcoin-Qt-testnet"
+#define QAPP_APP_NAME_SIGNET "Samcoin-Qt-signet"
+#define QAPP_APP_NAME_REGTEST "Samcoin-Qt-regtest"
 
 /* One gigabyte (GB) in bytes */
 static constexpr uint64_t GB_BYTES{1000000000};
@@ -59,4 +55,4 @@ static constexpr uint64_t GB_BYTES{1000000000};
 // Default prune target displayed in GUI.
 static constexpr int DEFAULT_PRUNE_TARGET_GB{2};
 
-#endif // BITCOIN_QT_GUICONSTANTS_H
+#endif // SAMCOIN_QT_GUICONSTANTS_H

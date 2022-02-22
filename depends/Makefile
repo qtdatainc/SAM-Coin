@@ -39,10 +39,9 @@ NO_SQLITE ?=
 NO_WALLET ?=
 NO_ZMQ ?=
 NO_UPNP ?=
-NO_USDT ?=
 NO_NATPMP ?=
 MULTIPROCESS ?=
-FALLBACK_DOWNLOAD_PATH ?= https://bitcoincore.org/depends-sources
+FALLBACK_DOWNLOAD_PATH ?= https://samcoincore.org/depends-sources
 
 BUILD = $(shell ./config.guess)
 HOST ?= $(BUILD)
@@ -76,9 +75,6 @@ build_vendor=$(word 2,$(subst -, ,$(build)))
 full_build_os:=$(subst $(build_arch)-$(build_vendor)-,,$(build))
 build_os:=$(findstring linux,$(full_build_os))
 build_os+=$(findstring darwin,$(full_build_os))
-build_os+=$(findstring freebsd,$(full_build_os))
-build_os+=$(findstring netbsd,$(full_build_os))
-build_os+=$(findstring openbsd,$(full_build_os))
 build_os:=$(strip $(build_os))
 ifeq ($(build_os),)
 build_os=$(full_build_os)
@@ -89,9 +85,6 @@ host_vendor=$(word 2,$(subst -, ,$(canonical_host)))
 full_host_os:=$(subst $(host_arch)-$(host_vendor)-,,$(canonical_host))
 host_os:=$(findstring linux,$(full_host_os))
 host_os+=$(findstring darwin,$(full_host_os))
-host_os+=$(findstring freebsd,$(full_host_os))
-host_os+=$(findstring netbsd,$(full_host_os))
-host_os+=$(findstring openbsd,$(full_host_os))
 host_os+=$(findstring mingw32,$(full_host_os))
 
 ifeq (android,$(findstring android,$(full_host_os)))
@@ -109,6 +102,10 @@ host_prefix=$($(host_arch)_$(host_os)_prefix)
 build_prefix=$(host_prefix)/native
 build_host=$(build)
 
+AT_$(V):=
+AT_:=@
+AT:=$(AT_$(V))
+
 all: install
 
 include hosts/$(host_os).mk
@@ -118,7 +115,7 @@ include builders/default.mk
 include packages/packages.mk
 
 # Previously, we directly invoked the well-known programs using $(shell ...)
-# to construct build_id_string. However, that was problematic because:
+# to contruct build_id_string. However, that was problematic because:
 #
 # 1. When invoking a shell, GNU Make special-cases exit code 127 (command not
 #    found) by not capturing the output but instead passing it through. This is
@@ -143,7 +140,7 @@ include packages/packages.mk
 build_id:=$(shell env CC='$(build_CC)' CXX='$(build_CXX)' AR='$(build_AR)' RANLIB='$(build_RANLIB)' STRIP='$(build_STRIP)' SHA256SUM='$(build_SHA256SUM)' DEBUG='$(DEBUG)' ./gen_id '$(BUILD_ID_SALT)' 'GUIX_ENVIRONMENT=$(realpath $(GUIX_ENVIRONMENT))')
 $(host_arch)_$(host_os)_id:=$(shell env CC='$(host_CC)' CXX='$(host_CXX)' AR='$(host_AR)' RANLIB='$(host_RANLIB)' STRIP='$(host_STRIP)' SHA256SUM='$(build_SHA256SUM)' DEBUG='$(DEBUG)' ./gen_id '$(HOST_ID_SALT)' 'GUIX_ENVIRONMENT=$(realpath $(GUIX_ENVIRONMENT))')
 
-qrencode_packages_$(NO_QR) = $(qrencode_$(host_os)_packages)
+qrencode_packages_$(NO_QR) = $(qrencode_packages)
 
 qt_packages_$(NO_QT) = $(qt_packages) $(qt_$(host_os)_packages) $(qt_$(host_arch)_$(host_os)_packages) $(qrencode_packages_)
 
@@ -156,9 +153,8 @@ natpmp_packages_$(NO_NATPMP) = $(natpmp_packages)
 
 zmq_packages_$(NO_ZMQ) = $(zmq_packages)
 multiprocess_packages_$(MULTIPROCESS) = $(multiprocess_packages)
-usdt_packages_$(NO_USDT) = $(usdt_$(host_os)_packages)
 
-packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(qt_packages_) $(wallet_packages_) $(upnp_packages_) $(natpmp_packages_) $(usdt_packages_)
+packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(qt_packages_) $(wallet_packages_) $(upnp_packages_) $(natpmp_packages_)
 native_packages += $($(host_arch)_$(host_os)_native_packages) $($(host_os)_native_packages)
 
 ifneq ($(zmq_packages_),)
@@ -182,12 +178,12 @@ include funcs.mk
 final_build_id_long+=$(shell $(build_SHA256SUM) config.site.in)
 final_build_id+=$(shell echo -n "$(final_build_id_long)" | $(build_SHA256SUM) | cut -c-$(HASH_LENGTH))
 $(host_prefix)/.stamp_$(final_build_id): $(native_packages) $(packages)
-	rm -rf $(@D)
-	mkdir -p $(@D)
-	echo copying packages: $^
-	echo to: $(@D)
-	cd $(@D); $(foreach package,$^, $(build_TAR) xf $($(package)_cached); )
-	touch $@
+	$(AT)rm -rf $(@D)
+	$(AT)mkdir -p $(@D)
+	$(AT)echo copying packages: $^
+	$(AT)echo to: $(@D)
+	$(AT)cd $(@D); $(foreach package,$^, tar xf $($(package)_cached); )
+	$(AT)touch $@
 
 # $PATH is not preserved between ./configure and make by convention. Its
 # modification and overriding at ./configure time is (as I understand it)
@@ -214,8 +210,8 @@ $(host_prefix)/.stamp_$(final_build_id): $(native_packages) $(packages)
 # we expect them to be available in $PATH at all times, more specificity does
 # not hurt.
 $(host_prefix)/share/config.site : config.site.in $(host_prefix)/.stamp_$(final_build_id)
-	@mkdir -p $(@D)
-	sed -e 's|@HOST@|$(host)|' \
+	$(AT)@mkdir -p $(@D)
+	$(AT)sed -e 's|@HOST@|$(host)|' \
             -e 's|@CC@|$(host_CC)|' \
             -e 's|@CXX@|$(host_CXX)|' \
             -e 's|@AR@|$(host_AR)|' \
@@ -236,12 +232,11 @@ $(host_prefix)/share/config.site : config.site.in $(host_prefix)/.stamp_$(final_
             -e 's|@no_bdb@|$(NO_BDB)|' \
             -e 's|@no_sqlite@|$(NO_SQLITE)|' \
             -e 's|@no_upnp@|$(NO_UPNP)|' \
-            -e 's|@no_usdt@|$(NO_USDT)|' \
             -e 's|@no_natpmp@|$(NO_NATPMP)|' \
             -e 's|@multiprocess@|$(MULTIPROCESS)|' \
             -e 's|@debug@|$(DEBUG)|' \
             $< > $@
-	touch $@
+	$(AT)touch $@
 
 
 define check_or_remove_cached
@@ -290,4 +285,3 @@ $(foreach package,$(all_packages),$(eval $(call ext_add_stages,$(package))))
 
 .PHONY: install cached clean clean-all download-one download-osx download-linux download-win download check-packages check-sources
 .PHONY: FORCE
-$(V).SILENT:

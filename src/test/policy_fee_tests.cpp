@@ -1,8 +1,8 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <consensus/amount.h>
+#include <amount.h>
 #include <policy/fees.h>
 
 #include <boost/test/unit_test.hpp>

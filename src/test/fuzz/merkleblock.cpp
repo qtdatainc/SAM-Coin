@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -34,7 +34,7 @@ FUZZ_TARGET(merkleblock)
                 if (fuzzed_data_provider.ConsumeBool()) {
                     merkle_block = CMerkleBlock{*opt_block, bloom_filter};
                 } else if (fuzzed_data_provider.ConsumeBool()) {
-                    LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 10000) {
+                    while (fuzzed_data_provider.ConsumeBool()) {
                         txids.insert(ConsumeUInt256(fuzzed_data_provider));
                     }
                     merkle_block = CMerkleBlock{*opt_block, txids};

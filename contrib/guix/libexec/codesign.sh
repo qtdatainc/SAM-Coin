@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Copyright (c) 2021 The Bitcoin Core developers
-# Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
 export LC_ALL=C
 set -e -o pipefail
 export TZ=UTC
@@ -82,7 +79,7 @@ mkdir -p "$DISTSRC"
             ;;
         *darwin*)
             # Apply detached codesignatures to dist/ (in-place)
-            signapple apply dist/Bitcoin-Qt.app codesignatures/osx/dist
+            signapple apply dist/Samcoin-Qt.app codesignatures/osx/dist
 
             # Make an uncompressed DMG from dist/
             xorrisofs -D -l -V "$(< osx_volname)" -no-pad -r -dir-mode 0755 \

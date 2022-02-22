@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2019-2021 The Bitcoin Core developers
+# Copyright (c) 2019-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -26,7 +26,7 @@ from test_framework.messages import (
     tx_from_hex,
 )
 from test_framework.p2p import P2PDataStore, P2PInterface
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import assert_equal
 
 
@@ -40,7 +40,7 @@ class SlowP2PInterface(P2PInterface):
         time.sleep(0.1)
         self.send_message(msg_pong(message.nonce))
 
-class P2PEvict(BitcoinTestFramework):
+class P2PEvict(SamcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
@@ -53,7 +53,7 @@ class P2PEvict(BitcoinTestFramework):
         protected_peers = set()  # peers that we expect to be protected from eviction
         current_peer = -1
         node = self.nodes[0]
-        self.generatetoaddress(node, COINBASE_MATURITY + 1, node.get_deterministic_priv_key().address)
+        node.generatetoaddress(COINBASE_MATURITY + 1, node.get_deterministic_priv_key().address)
 
         self.log.info("Create 4 peers and protect them from eviction by sending us a block")
         for _ in range(4):

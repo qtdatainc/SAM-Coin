@@ -1,11 +1,10 @@
-// Copyright (c) 2015-2021 The Bitcoin Core developers
+// Copyright (c) 2015-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_BENCH_BENCH_H
-#define BITCOIN_BENCH_BENCH_H
+#ifndef SAMCOIN_BENCH_BENCH_H
+#define SAMCOIN_BENCH_BENCH_H
 
-#include <fs.h>
 #include <util/macros.h>
 
 #include <chrono>
@@ -42,12 +41,11 @@ using ankerl::nanobench::Bench;
 typedef std::function<void(Bench&)> BenchFunction;
 
 struct Args {
-    bool is_list_only;
-    std::chrono::milliseconds min_time;
-    std::vector<double> asymptote;
-    fs::path output_csv;
-    fs::path output_json;
     std::string regex_filter;
+    bool is_list_only;
+    std::vector<double> asymptote;
+    std::string output_csv;
+    std::string output_json;
 };
 
 class BenchRunner
@@ -66,4 +64,4 @@ public:
 #define BENCHMARK(n) \
     benchmark::BenchRunner PASTE2(bench_, PASTE2(__LINE__, n))(STRINGIZE(n), n);
 
-#endif // BITCOIN_BENCH_BENCH_H
+#endif // SAMCOIN_BENCH_BENCH_H

@@ -1,22 +1,13 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/dump.h>
 
-#include <fs.h>
 #include <util/translation.h>
 #include <wallet/wallet.h>
 
-#include <algorithm>
-#include <fstream>
-#include <memory>
-#include <string>
-#include <utility>
-#include <vector>
-
-namespace wallet {
-static const std::string DUMP_MAGIC = "BITCOIN_CORE_WALLET_DUMP";
+static const std::string DUMP_MAGIC = "SAMCOIN_CORE_WALLET_DUMP";
 uint32_t DUMP_VERSION = 1;
 
 bool DumpWallet(CWallet& wallet, bilingual_str& error)
@@ -28,16 +19,16 @@ bool DumpWallet(CWallet& wallet, bilingual_str& error)
         return false;
     }
 
-    fs::path path = fs::PathFromString(dump_filename);
+    fs::path path = dump_filename;
     path = fs::absolute(path);
     if (fs::exists(path)) {
-        error = strprintf(_("File %s already exists. If you are sure this is what you want, move it out of the way first."), fs::PathToString(path));
+        error = strprintf(_("File %s already exists. If you are sure this is what you want, move it out of the way first."), path.string());
         return false;
     }
-    std::ofstream dump_file;
+    fsbridge::ofstream dump_file;
     dump_file.open(path);
     if (dump_file.fail()) {
-        error = strprintf(_("Unable to open %s for writing"), fs::PathToString(path));
+        error = strprintf(_("Unable to open %s for writing"), path.string());
         return false;
     }
 
@@ -55,12 +46,12 @@ bool DumpWallet(CWallet& wallet, bilingual_str& error)
     // Write out a magic string with version
     std::string line = strprintf("%s,%u\n", DUMP_MAGIC, DUMP_VERSION);
     dump_file.write(line.data(), line.size());
-    hasher.write(MakeByteSpan(line));
+    hasher.write(line.data(), line.size());
 
     // Write out the file format
     line = strprintf("%s,%s\n", "format", db.Format());
     dump_file.write(line.data(), line.size());
-    hasher.write(MakeByteSpan(line));
+    hasher.write(line.data(), line.size());
 
     if (ret) {
 
@@ -81,7 +72,7 @@ bool DumpWallet(CWallet& wallet, bilingual_str& error)
             std::string value_str = HexStr(ss_value);
             line = strprintf("%s,%s\n", key_str, value_str);
             dump_file.write(line.data(), line.size());
-            hasher.write(MakeByteSpan(line));
+            hasher.write(line.data(), line.size());
         }
     }
 
@@ -105,7 +96,7 @@ bool DumpWallet(CWallet& wallet, bilingual_str& error)
 }
 
 // The standard wallet deleter function blocks on the validation interface
-// queue, which doesn't exist for the bitcoin-wallet. Define our own
+// queue, which doesn't exist for the samcoin-wallet. Define our own
 // deleter here.
 static void WalletToolReleaseWallet(CWallet* wallet)
 {
@@ -123,13 +114,13 @@ bool CreateFromDump(const std::string& name, const fs::path& wallet_path, biling
         return false;
     }
 
-    fs::path dump_path = fs::PathFromString(dump_filename);
+    fs::path dump_path = dump_filename;
     dump_path = fs::absolute(dump_path);
     if (!fs::exists(dump_path)) {
-        error = strprintf(_("Dump file %s does not exist."), fs::PathToString(dump_path));
+        error = strprintf(_("Dump file %s does not exist."), dump_path.string());
         return false;
     }
-    std::ifstream dump_file{dump_path};
+    fsbridge::ifstream dump_file(dump_path);
 
     // Compute the checksum
     CHashWriter hasher(0, 0);
@@ -153,12 +144,12 @@ bool CreateFromDump(const std::string& name, const fs::path& wallet_path, biling
         return false;
     }
     if (ver != DUMP_VERSION) {
-        error = strprintf(_("Error: Dumpfile version is not supported. This version of bitcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s"), version_value);
+        error = strprintf(_("Error: Dumpfile version is not supported. This version of samcoin-wallet only supports version 1 dumpfiles. Got dumpfile with version %s"), version_value);
         dump_file.close();
         return false;
     }
     std::string magic_hasher_line = strprintf("%s,%s\n", magic_key, version_value);
-    hasher.write(MakeByteSpan(magic_hasher_line));
+    hasher.write(magic_hasher_line.data(), magic_hasher_line.size());
 
     // Get the stored file format
     std::string format_key;
@@ -189,7 +180,7 @@ bool CreateFromDump(const std::string& name, const fs::path& wallet_path, biling
         warnings.push_back(strprintf(_("Warning: Dumpfile wallet format \"%s\" does not match command line specified format \"%s\"."), format_value, file_format));
     }
     std::string format_hasher_line = strprintf("%s,%s\n", format_key, format_value);
-    hasher.write(MakeByteSpan(format_hasher_line));
+    hasher.write(format_hasher_line.data(), format_hasher_line.size());
 
     DatabaseOptions options;
     DatabaseStatus status;
@@ -200,7 +191,7 @@ bool CreateFromDump(const std::string& name, const fs::path& wallet_path, biling
 
     // dummy chain interface
     bool ret = true;
-    std::shared_ptr<CWallet> wallet(new CWallet(nullptr /* chain */, name, gArgs, std::move(database)), WalletToolReleaseWallet);
+    std::shared_ptr<CWallet> wallet(new CWallet(nullptr /* chain */, name, std::move(database)), WalletToolReleaseWallet);
     {
         LOCK(wallet->cs_wallet);
         DBErrors load_wallet_ret = wallet->LoadWallet();
@@ -223,17 +214,12 @@ bool CreateFromDump(const std::string& name, const fs::path& wallet_path, biling
 
             if (key == "checksum") {
                 std::vector<unsigned char> parsed_checksum = ParseHex(value);
-                if (parsed_checksum.size() != checksum.size()) {
-                    error = Untranslated("Error: Checksum is not the correct size");
-                    ret = false;
-                    break;
-                }
                 std::copy(parsed_checksum.begin(), parsed_checksum.end(), checksum.begin());
                 break;
             }
 
             std::string line = strprintf("%s,%s\n", key, value);
-            hasher.write(MakeByteSpan(line));
+            hasher.write(line.data(), line.size());
 
             if (key.empty() || value.empty()) {
                 continue;
@@ -293,4 +279,3 @@ bool CreateFromDump(const std::string& name, const fs::path& wallet_path, biling
 
     return ret;
 }
-} // namespace wallet

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020 The Bitcoin Core developers
+# Copyright (c) 2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,6 +15,7 @@ import sys
 import time
 import subprocess
 
+from binascii import unhexlify
 from io import BytesIO
 
 PATH_BASE_CONTRIB_SIGNET = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
@@ -201,7 +202,7 @@ def finish_block(block, signet_solution, grind_cmd):
 
 def generate_psbt(tmpl, reward_spk, *, blocktime=None):
     signet_spk = tmpl["signet_challenge"]
-    signet_spk_bin = bytes.fromhex(signet_spk)
+    signet_spk_bin = unhexlify(signet_spk)
 
     cbtx = create_coinbase(height=tmpl["height"], value=tmpl["coinbasevalue"], spk=reward_spk)
     cbtx.vin[0].nSequence = 2**32-2
@@ -257,7 +258,7 @@ def get_reward_addr_spk(args, height):
         return args.address, args.reward_spk
 
     reward_addr = get_reward_address(args, height)
-    reward_spk = bytes.fromhex(json.loads(args.bcli("getaddressinfo", reward_addr))["scriptPubKey"])
+    reward_spk = unhexlify(json.loads(args.bcli("getaddressinfo", reward_addr))["scriptPubKey"])
     if args.address is not None:
         # will always be the same, so cache
         args.reward_spk = reward_spk
@@ -553,9 +554,9 @@ def do_calibrate(args):
     print("nbits=%08x for %ds average mining time" % (target_to_nbits(want_targ), want_time))
     return 0
 
-def bitcoin_cli(basecmd, args, **kwargs):
+def samcoin_cli(basecmd, args, **kwargs):
     cmd = basecmd + ["-signet"] + args
-    logging.debug("Calling bitcoin-cli: %r", cmd)
+    logging.debug("Calling samcoin-cli: %r", cmd)
     out = subprocess.run(cmd, stdout=subprocess.PIPE, **kwargs, check=True).stdout
     if isinstance(out, bytes):
         out = out.decode('utf8')
@@ -563,7 +564,7 @@ def bitcoin_cli(basecmd, args, **kwargs):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cli", default="bitcoin-cli", type=str, help="bitcoin-cli command")
+    parser.add_argument("--cli", default="samcoin-cli", type=str, help="samcoin-cli command")
     parser.add_argument("--debug", action="store_true", help="Print debugging info")
     parser.add_argument("--quiet", action="store_true", help="Only print warnings/errors")
 
@@ -600,7 +601,7 @@ def main():
 
     args = parser.parse_args(sys.argv[1:])
 
-    args.bcli = lambda *a, input=b"", **kwargs: bitcoin_cli(args.cli.split(" "), list(a), input=input, **kwargs)
+    args.bcli = lambda *a, input=b"", **kwargs: samcoin_cli(args.cli.split(" "), list(a), input=input, **kwargs)
 
     if hasattr(args, "address") and hasattr(args, "descriptor"):
         if args.address is None and args.descriptor is None:

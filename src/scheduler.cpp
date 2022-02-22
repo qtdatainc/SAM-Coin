@@ -1,11 +1,10 @@
-// Copyright (c) 2015-2021 The Bitcoin Core developers
+// Copyright (c) 2015-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <scheduler.h>
 
 #include <random.h>
-#include <util/syscall_sandbox.h>
 #include <util/time.h>
 
 #include <assert.h>
@@ -25,7 +24,6 @@ CScheduler::~CScheduler()
 
 void CScheduler::serviceQueue()
 {
-    SetSyscallSandboxPolicy(SyscallSandboxPolicy::SCHEDULER);
     WAIT_LOCK(newTaskMutex, lock);
     ++nThreadsServicingQueue;
 
@@ -136,7 +134,7 @@ bool CScheduler::AreThreadsServicingQueue() const
 void SingleThreadedSchedulerClient::MaybeScheduleProcessQueue()
 {
     {
-        LOCK(m_callbacks_mutex);
+        LOCK(m_cs_callbacks_pending);
         // Try to avoid scheduling too many copies here, but if we
         // accidentally have two ProcessQueue's scheduled at once its
         // not a big deal.
@@ -150,7 +148,7 @@ void SingleThreadedSchedulerClient::ProcessQueue()
 {
     std::function<void()> callback;
     {
-        LOCK(m_callbacks_mutex);
+        LOCK(m_cs_callbacks_pending);
         if (m_are_callbacks_running) return;
         if (m_callbacks_pending.empty()) return;
         m_are_callbacks_running = true;
@@ -167,7 +165,7 @@ void SingleThreadedSchedulerClient::ProcessQueue()
         ~RAIICallbacksRunning()
         {
             {
-                LOCK(instance->m_callbacks_mutex);
+                LOCK(instance->m_cs_callbacks_pending);
                 instance->m_are_callbacks_running = false;
             }
             instance->MaybeScheduleProcessQueue();
@@ -182,7 +180,7 @@ void SingleThreadedSchedulerClient::AddToProcessQueue(std::function<void()> func
     assert(m_pscheduler);
 
     {
-        LOCK(m_callbacks_mutex);
+        LOCK(m_cs_callbacks_pending);
         m_callbacks_pending.emplace_back(std::move(func));
     }
     MaybeScheduleProcessQueue();
@@ -194,13 +192,13 @@ void SingleThreadedSchedulerClient::EmptyQueue()
     bool should_continue = true;
     while (should_continue) {
         ProcessQueue();
-        LOCK(m_callbacks_mutex);
+        LOCK(m_cs_callbacks_pending);
         should_continue = !m_callbacks_pending.empty();
     }
 }
 
 size_t SingleThreadedSchedulerClient::CallbacksPending()
 {
-    LOCK(m_callbacks_mutex);
+    LOCK(m_cs_callbacks_pending);
     return m_callbacks_pending.size();
 }

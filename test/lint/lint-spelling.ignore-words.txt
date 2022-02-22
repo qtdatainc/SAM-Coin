@@ -1,8 +1,6 @@
 asend
-ba
 blockin
 cachable
-creat
 fo
 fpr
 hights

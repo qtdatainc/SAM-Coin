@@ -1,11 +1,11 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/transactionview.h>
 
 #include <qt/addresstablemodel.h>
-#include <qt/bitcoinunits.h>
+#include <qt/samcoinunits.h>
 #include <qt/csvmodelwriter.h>
 #include <qt/editaddressdialog.h>
 #include <qt/guiutil.h>
@@ -18,9 +18,6 @@
 #include <qt/walletmodel.h>
 
 #include <node/ui_interface.h>
-
-#include <chrono>
-#include <optional>
 
 #include <QApplication>
 #include <QComboBox>
@@ -115,8 +112,8 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     amountWidget->setValidator(amountValidator);
     hlayout->addWidget(amountWidget);
 
-    // Delay before filtering transactions
-    static constexpr auto input_filter_delay{200ms};
+    // Delay before filtering transactions in ms
+    static const int input_filter_delay = 200;
 
     QTimer* amount_typing_delay = new QTimer(this);
     amount_typing_delay->setSingleShot(true);
@@ -223,21 +220,17 @@ void TransactionView::setModel(WalletModel *_model)
         {
             // Add third party transaction URLs to context menu
             QStringList listUrls = GUIUtil::SplitSkipEmptyParts(_model->getOptionsModel()->getThirdPartyTxUrls(), "|");
-            bool actions_created = false;
             for (int i = 0; i < listUrls.size(); ++i)
             {
                 QString url = listUrls[i].trimmed();
                 QString host = QUrl(url, QUrl::StrictMode).host();
                 if (!host.isEmpty())
                 {
-                    if (!actions_created) {
+                    QAction *thirdPartyTxUrlAction = new QAction(host, this); // use host as menu item label
+                    if (i == 0)
                         contextMenu->addSeparator();
-                        actions_created = true;
-                    }
-                    /*: Transactions table context menu action to show the
-                        selected transaction in a third-party block explorer.
-                        %1 is a stand-in argument for the URL of the explorer. */
-                    contextMenu->addAction(tr("Show in %1").arg(host), [this, url] { openThirdPartyTxUrl(url); });
+                    contextMenu->addAction(thirdPartyTxUrlAction);
+                    connect(thirdPartyTxUrlAction, &QAction::triggered, [this, url] { openThirdPartyTxUrl(url); });
                 }
             }
         }
@@ -273,26 +266,26 @@ void TransactionView::chooseDate(int idx)
     {
     case All:
         transactionProxyModel->setDateRange(
-                std::nullopt,
-                std::nullopt);
+                TransactionFilterProxy::MIN_DATE,
+                TransactionFilterProxy::MAX_DATE);
         break;
     case Today:
         transactionProxyModel->setDateRange(
                 GUIUtil::StartOfDay(current),
-                std::nullopt);
+                TransactionFilterProxy::MAX_DATE);
         break;
     case ThisWeek: {
         // Find last Monday
         QDate startOfWeek = current.addDays(-(current.dayOfWeek()-1));
         transactionProxyModel->setDateRange(
                 GUIUtil::StartOfDay(startOfWeek),
-                std::nullopt);
+                TransactionFilterProxy::MAX_DATE);
 
         } break;
     case ThisMonth:
         transactionProxyModel->setDateRange(
                 GUIUtil::StartOfDay(QDate(current.year(), current.month(), 1)),
-                std::nullopt);
+                TransactionFilterProxy::MAX_DATE);
         break;
     case LastMonth:
         transactionProxyModel->setDateRange(
@@ -302,7 +295,7 @@ void TransactionView::chooseDate(int idx)
     case ThisYear:
         transactionProxyModel->setDateRange(
                 GUIUtil::StartOfDay(QDate(current.year(), 1, 1)),
-                std::nullopt);
+                TransactionFilterProxy::MAX_DATE);
         break;
     case Range:
         dateRangeWidget->setVisible(true);
@@ -339,7 +332,7 @@ void TransactionView::changedAmount()
     if(!transactionProxyModel)
         return;
     CAmount amount_parsed = 0;
-    if (BitcoinUnits::parse(model->getOptionsModel()->getDisplayUnit(), amountWidget->text(), &amount_parsed)) {
+    if (SamcoinUnits::parse(model->getOptionsModel()->getDisplayUnit(), amountWidget->text(), &amount_parsed)) {
         transactionProxyModel->setMinAmount(amount_parsed);
     }
     else
@@ -358,7 +351,7 @@ void TransactionView::exportClicked()
     QString filename = GUIUtil::getSaveFileName(this,
         tr("Export Transaction History"), QString(),
         /*: Expanded name of the CSV file format.
-            See: https://en.wikipedia.org/wiki/Comma-separated_values. */
+            See https://en.wikipedia.org/wiki/Comma-separated_values */
         tr("Comma separated file") + QLatin1String(" (*.csv)"), nullptr);
 
     if (filename.isNull())
@@ -375,7 +368,7 @@ void TransactionView::exportClicked()
     writer.addColumn(tr("Type"), TransactionTableModel::Type, Qt::EditRole);
     writer.addColumn(tr("Label"), 0, TransactionTableModel::LabelRole);
     writer.addColumn(tr("Address"), 0, TransactionTableModel::AddressRole);
-    writer.addColumn(BitcoinUnits::getAmountColumnTitle(model->getOptionsModel()->getDisplayUnit()), 0, TransactionTableModel::FormattedAmountRole);
+    writer.addColumn(SamcoinUnits::getAmountColumnTitle(model->getOptionsModel()->getDisplayUnit()), 0, TransactionTableModel::FormattedAmountRole);
     writer.addColumn(tr("ID"), 0, TransactionTableModel::TxHashRole);
 
     if(!writer.write()) {
@@ -505,22 +498,22 @@ void TransactionView::editLabel()
             // Determine type of address, launch appropriate editor dialog type
             QString type = modelIdx.data(AddressTableModel::TypeRole).toString();
 
-            auto dlg = new EditAddressDialog(
+            EditAddressDialog dlg(
                 type == AddressTableModel::Receive
                 ? EditAddressDialog::EditReceivingAddress
                 : EditAddressDialog::EditSendingAddress, this);
-            dlg->setModel(addressBook);
-            dlg->loadRow(idx);
-            GUIUtil::ShowModalDialogAsynchronously(dlg);
+            dlg.setModel(addressBook);
+            dlg.loadRow(idx);
+            dlg.exec();
         }
         else
         {
             // Add sending address
-            auto dlg = new EditAddressDialog(EditAddressDialog::NewSendingAddress,
+            EditAddressDialog dlg(EditAddressDialog::NewSendingAddress,
                 this);
-            dlg->setModel(addressBook);
-            dlg->setAddress(address);
-            GUIUtil::ShowModalDialogAsynchronously(dlg);
+            dlg.setModel(addressBook);
+            dlg.setAddress(address);
+            dlg.exec();
         }
     }
 }

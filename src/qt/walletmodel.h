@@ -1,12 +1,12 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_WALLETMODEL_H
-#define BITCOIN_QT_WALLETMODEL_H
+#ifndef SAMCOIN_QT_WALLETMODEL_H
+#define SAMCOIN_QT_WALLETMODEL_H
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <key.h>
@@ -32,23 +32,22 @@ class SendCoinsRecipient;
 class TransactionTableModel;
 class WalletModelTransaction;
 
+class CCoinControl;
 class CKeyID;
 class COutPoint;
+class COutput;
 class CPubKey;
 class uint256;
 
 namespace interfaces {
 class Node;
 } // namespace interfaces
-namespace wallet {
-class CCoinControl;
-} // namespace wallet
 
 QT_BEGIN_NAMESPACE
 class QTimer;
 QT_END_NAMESPACE
 
-/** Interface to Bitcoin wallet from Qt view code. */
+/** Interface to Samcoin wallet from Qt view code. */
 class WalletModel : public QObject
 {
     Q_OBJECT
@@ -100,7 +99,7 @@ public:
     };
 
     // prepare transaction for getting txfee before sending coins
-    SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction, const wallet::CCoinControl& coinControl);
+    SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction, const CCoinControl& coinControl);
 
     // Send coins to a list of recipients
     SendCoinsReturn sendCoins(WalletModelTransaction &transaction);
@@ -240,4 +239,4 @@ public Q_SLOTS:
     void pollBalanceChanged();
 };
 
-#endif // BITCOIN_QT_WALLETMODEL_H
+#endif // SAMCOIN_QT_WALLETMODEL_H

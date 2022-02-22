@@ -1,17 +1,11 @@
-// Copyright (c) 2019-2021 The Bitcoin Core developers
+// Copyright (c) 2019 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <fs.h>
 #include <util/settings.h>
 
 #include <tinyformat.h>
 #include <univalue.h>
-
-#include <fstream>
-#include <map>
-#include <string>
-#include <vector>
 
 namespace util {
 namespace {
@@ -66,30 +60,24 @@ bool ReadSettings(const fs::path& path, std::map<std::string, SettingsValue>& va
     values.clear();
     errors.clear();
 
-    // Ok for file to not exist
-    if (!fs::exists(path)) return true;
-
-    std::ifstream file;
+    fsbridge::ifstream file;
     file.open(path);
-    if (!file.is_open()) {
-      errors.emplace_back(strprintf("%s. Please check permissions.", fs::PathToString(path)));
-      return false;
-    }
+    if (!file.is_open()) return true; // Ok for file not to exist.
 
     SettingsValue in;
     if (!in.read(std::string{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()})) {
-        errors.emplace_back(strprintf("Unable to parse settings file %s", fs::PathToString(path)));
+        errors.emplace_back(strprintf("Unable to parse settings file %s", path.string()));
         return false;
     }
 
     if (file.fail()) {
-        errors.emplace_back(strprintf("Failed reading settings file %s", fs::PathToString(path)));
+        errors.emplace_back(strprintf("Failed reading settings file %s", path.string()));
         return false;
     }
     file.close(); // Done with file descriptor. Release while copying data.
 
     if (!in.isObject()) {
-        errors.emplace_back(strprintf("Found non-object value %s in settings file %s", in.write(), fs::PathToString(path)));
+        errors.emplace_back(strprintf("Found non-object value %s in settings file %s", in.write(), path.string()));
         return false;
     }
 
@@ -98,7 +86,7 @@ bool ReadSettings(const fs::path& path, std::map<std::string, SettingsValue>& va
     for (size_t i = 0; i < in_keys.size(); ++i) {
         auto inserted = values.emplace(in_keys[i], in_values[i]);
         if (!inserted.second) {
-            errors.emplace_back(strprintf("Found duplicate key %s in settings file %s", in_keys[i], fs::PathToString(path)));
+            errors.emplace_back(strprintf("Found duplicate key %s in settings file %s", in_keys[i], path.string()));
         }
     }
     return errors.empty();
@@ -112,13 +100,13 @@ bool WriteSettings(const fs::path& path,
     for (const auto& value : values) {
         out.__pushKV(value.first, value.second);
     }
-    std::ofstream file;
+    fsbridge::ofstream file;
     file.open(path);
     if (file.fail()) {
-        errors.emplace_back(strprintf("Error: Unable to open settings file %s for writing", fs::PathToString(path)));
+        errors.emplace_back(strprintf("Error: Unable to open settings file %s for writing", path.string()));
         return false;
     }
-    file << out.write(/* prettyIndent= */ 4, /* indentLevel= */ 1) << std::endl;
+    file << out.write(/* prettyIndent= */ 1, /* indentLevel= */ 4) << std::endl;
     file.close();
     return true;
 }

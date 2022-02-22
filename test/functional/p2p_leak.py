@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Bitcoin Core developers
+# Copyright (c) 2017-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test message sending before handshake completion.
@@ -23,7 +23,7 @@ from test_framework.p2p import (
     P2P_SERVICES,
     P2P_VERSION_RELAY,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_greater_than_or_equal,
@@ -97,7 +97,7 @@ class P2PVersionStore(P2PInterface):
         self.version_received = msg
 
 
-class P2PLeakTest(BitcoinTestFramework):
+class P2PLeakTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [[f"-peertimeout={PEER_TIMEOUT}"]]
@@ -133,7 +133,7 @@ class P2PLeakTest(BitcoinTestFramework):
         pre_wtxidrelay_peer.wait_until(lambda: pre_wtxidrelay_peer.version_received)
 
         # Mine a block and make sure that it's not sent to the connected peers
-        self.generate(self.nodes[0], nblocks=1)
+        self.nodes[0].generate(nblocks=1)
 
         # Give the node enough time to possibly leak out a message
         time.sleep(PEER_TIMEOUT + 2)

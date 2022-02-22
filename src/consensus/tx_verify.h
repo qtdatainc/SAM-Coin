@@ -1,11 +1,11 @@
-// Copyright (c) 2017-2021 The Bitcoin Core developers
+// Copyright (c) 2017-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_CONSENSUS_TX_VERIFY_H
-#define BITCOIN_CONSENSUS_TX_VERIFY_H
+#ifndef SAMCOIN_CONSENSUS_TX_VERIFY_H
+#define SAMCOIN_CONSENSUS_TX_VERIFY_H
 
-#include <consensus/amount.h>
+#include <amount.h>
 
 #include <stdint.h>
 #include <vector>
@@ -49,10 +49,10 @@ unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& ma
  * Compute total signature operation cost of a transaction.
  * @param[in] tx     Transaction for which we are computing the cost
  * @param[in] inputs Map of previous transactions that have outputs we're spending
- * @param[in] flags Script verification flags
+ * @param[out] flags Script verification flags
  * @return Total signature operation cost of tx
  */
-int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& inputs, uint32_t flags);
+int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& inputs, int flags);
 
 /**
  * Check if transaction is final and can be included in a block with the
@@ -75,4 +75,4 @@ bool EvaluateSequenceLocks(const CBlockIndex& block, std::pair<int, int64_t> loc
  */
 bool SequenceLocks(const CTransaction &tx, int flags, std::vector<int>& prevHeights, const CBlockIndex& block);
 
-#endif // BITCOIN_CONSENSUS_TX_VERIFY_H
+#endif // SAMCOIN_CONSENSUS_TX_VERIFY_H

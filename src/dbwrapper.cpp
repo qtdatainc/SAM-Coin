@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2021 The Bitcoin Core developers
+// Copyright (c) 2012-2019 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <algorithm>
 
-class CBitcoinLevelDBLogger : public leveldb::Logger {
+class CSamcoinLevelDBLogger : public leveldb::Logger {
 public:
     // This code is adapted from posix_logger.h, which is why it is using vsprintf.
     // Please do not do this in normal code
@@ -41,7 +41,7 @@ public:
                 if (p < limit) {
                     va_list backup_ap;
                     va_copy(backup_ap, ap);
-                    // Do not use vsnprintf elsewhere in bitcoin source code, see above.
+                    // Do not use vsnprintf elsewhere in samcoin source code, see above.
                     p += vsnprintf(p, limit - p, format, backup_ap);
                     va_end(backup_ap);
                 }
@@ -104,7 +104,7 @@ static leveldb::Options GetOptions(size_t nCacheSize)
     options.write_buffer_size = nCacheSize / 4; // up to two write buffers may be held in memory simultaneously
     options.filter_policy = leveldb::NewBloomFilterPolicy(10);
     options.compression = leveldb::kNoCompression;
-    options.info_log = new CBitcoinLevelDBLogger();
+    options.info_log = new CSamcoinLevelDBLogger();
     if (leveldb::kMajorVersion > 1 || (leveldb::kMajorVersion == 1 && leveldb::kMinorVersion >= 16)) {
         // LevelDB versions before 1.16 consider short writes to be corruption. Only trigger error
         // on corruption in later versions.
@@ -115,7 +115,7 @@ static leveldb::Options GetOptions(size_t nCacheSize)
 }
 
 CDBWrapper::CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory, bool fWipe, bool obfuscate)
-    : m_name{fs::PathToString(path.stem())}
+    : m_name{path.stem().string()}
 {
     penv = nullptr;
     readoptions.verify_checksums = true;
@@ -129,25 +129,21 @@ CDBWrapper::CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory, bo
         options.env = penv;
     } else {
         if (fWipe) {
-            LogPrintf("Wiping LevelDB in %s\n", fs::PathToString(path));
-            leveldb::Status result = leveldb::DestroyDB(fs::PathToString(path), options);
+            LogPrintf("Wiping LevelDB in %s\n", path.string());
+            leveldb::Status result = leveldb::DestroyDB(path.string(), options);
             dbwrapper_private::HandleError(result);
         }
         TryCreateDirectories(path);
-        LogPrintf("Opening LevelDB in %s\n", fs::PathToString(path));
+        LogPrintf("Opening LevelDB in %s\n", path.string());
     }
-    // PathToString() return value is safe to pass to leveldb open function,
-    // because on POSIX leveldb passes the byte string directly to ::open(), and
-    // on Windows it converts from UTF-8 to UTF-16 before calling ::CreateFileW
-    // (see env_posix.cc and env_windows.cc).
-    leveldb::Status status = leveldb::DB::Open(options, fs::PathToString(path), &pdb);
+    leveldb::Status status = leveldb::DB::Open(options, path.string(), &pdb);
     dbwrapper_private::HandleError(status);
     LogPrintf("Opened LevelDB successfully\n");
 
     if (gArgs.GetBoolArg("-forcecompactdb", false)) {
-        LogPrintf("Starting database compaction of %s\n", fs::PathToString(path));
+        LogPrintf("Starting database compaction of %s\n", path.string());
         pdb->CompactRange(nullptr, nullptr);
-        LogPrintf("Finished database compaction of %s\n", fs::PathToString(path));
+        LogPrintf("Finished database compaction of %s\n", path.string());
     }
 
     // The base-case obfuscation key, which is a noop.
@@ -164,10 +160,10 @@ CDBWrapper::CDBWrapper(const fs::path& path, size_t nCacheSize, bool fMemory, bo
         Write(OBFUSCATE_KEY_KEY, new_key);
         obfuscate_key = new_key;
 
-        LogPrintf("Wrote new obfuscate key for %s: %s\n", fs::PathToString(path), HexStr(obfuscate_key));
+        LogPrintf("Wrote new obfuscate key for %s: %s\n", path.string(), HexStr(obfuscate_key));
     }
 
-    LogPrintf("Using obfuscation key for %s: %s\n", fs::PathToString(path), HexStr(obfuscate_key));
+    LogPrintf("Using obfuscation key for %s: %s\n", path.string(), HexStr(obfuscate_key));
 }
 
 CDBWrapper::~CDBWrapper()
@@ -201,15 +197,13 @@ bool CDBWrapper::WriteBatch(CDBBatch& batch, bool fSync)
     return true;
 }
 
-size_t CDBWrapper::DynamicMemoryUsage() const
-{
+size_t CDBWrapper::DynamicMemoryUsage() const {
     std::string memory;
-    std::optional<size_t> parsed;
-    if (!pdb->GetProperty("leveldb.approximate-memory-usage", &memory) || !(parsed = ToIntegral<size_t>(memory))) {
+    if (!pdb->GetProperty("leveldb.approximate-memory-usage", &memory)) {
         LogPrint(BCLog::LEVELDB, "Failed to get approximate-memory-usage property\n");
         return 0;
     }
-    return parsed.value();
+    return stoul(memory);
 }
 
 // Prefixed with null character to avoid collisions with other keys

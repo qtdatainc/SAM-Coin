@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <qt/walletmodel.h>
@@ -36,9 +36,6 @@
 #include <QSet>
 #include <QTimer>
 
-using wallet::CCoinControl;
-using wallet::CRecipient;
-using wallet::DEFAULT_DISABLE_WALLET;
 
 WalletModel::WalletModel(std::unique_ptr<interfaces::Wallet> wallet, ClientModel& client_model, const PlatformStyle *platformStyle, QObject *parent) :
     QObject(parent),
@@ -170,7 +167,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
     {
         if (rcp.fSubtractFeeFromAmount)
             fSubtractFeeFromAmount = true;
-        {   // User-entered bitcoin address / amount:
+        {   // User-entered samcoin address / amount:
             if(!validateAddress(rcp.address))
             {
                 return InvalidAddress;
@@ -242,7 +239,7 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &tran
         std::vector<std::pair<std::string, std::string>> vOrderForm;
         for (const SendCoinsRecipient &rcp : transaction.getRecipients())
         {
-            if (!rcp.message.isEmpty()) // Message from normal bitcoin:URI (bitcoin:123...?message=example)
+            if (!rcp.message.isEmpty()) // Message from normal samcoin:URI (samcoin:123...?message=example)
                 vOrderForm.emplace_back("Message", rcp.message.toStdString());
         }
 
@@ -483,23 +480,24 @@ bool WalletModel::bumpFee(uint256 hash, uint256& new_hash)
         return false;
     }
 
+    const bool create_psbt = m_wallet->privateKeysDisabled();
+
     // allow a user based fee verification
-    /*: Asks a user if they would like to manually increase the fee of a transaction that has already been created. */
-    QString questionString = tr("Do you want to increase the fee?");
+    QString questionString = create_psbt ? tr("Do you want to draft a transaction with fee increase?") : tr("Do you want to increase the fee?");
     questionString.append("<br />");
     questionString.append("<table style=\"text-align: left;\">");
     questionString.append("<tr><td>");
     questionString.append(tr("Current fee:"));
     questionString.append("</td><td>");
-    questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), old_fee));
+    questionString.append(SamcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), old_fee));
     questionString.append("</td></tr><tr><td>");
     questionString.append(tr("Increase:"));
     questionString.append("</td><td>");
-    questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), new_fee - old_fee));
+    questionString.append(SamcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), new_fee - old_fee));
     questionString.append("</td></tr><tr><td>");
     questionString.append(tr("New fee:"));
     questionString.append("</td><td>");
-    questionString.append(BitcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), new_fee));
+    questionString.append(SamcoinUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), new_fee));
     questionString.append("</td></tr></table>");
 
     // Display warning in the "Confirm fee bump" window if the "Coin Control Features" option is enabled
@@ -508,13 +506,12 @@ bool WalletModel::bumpFee(uint256 hash, uint256& new_hash)
         questionString.append(tr("Warning: This may pay the additional fee by reducing change outputs or adding inputs, when necessary. It may add a new change output if one does not already exist. These changes may potentially leak privacy."));
     }
 
-    auto confirmationDialog = new SendConfirmationDialog(tr("Confirm fee bump"), questionString, "", "", SEND_CONFIRM_DELAY, !m_wallet->privateKeysDisabled(), getOptionsModel()->getEnablePSBTControls(), nullptr);
-    confirmationDialog->setAttribute(Qt::WA_DeleteOnClose);
-    // TODO: Replace QDialog::exec() with safer QDialog::show().
-    const auto retval = static_cast<QMessageBox::StandardButton>(confirmationDialog->exec());
+    SendConfirmationDialog confirmationDialog(tr("Confirm fee bump"), questionString);
+    confirmationDialog.exec();
+    QMessageBox::StandardButton retval = static_cast<QMessageBox::StandardButton>(confirmationDialog.result());
 
     // cancel sign&broadcast if user doesn't want to bump the fee
-    if (retval != QMessageBox::Yes && retval != QMessageBox::Save) {
+    if (retval != QMessageBox::Yes) {
         return false;
     }
 
@@ -525,7 +522,7 @@ bool WalletModel::bumpFee(uint256 hash, uint256& new_hash)
     }
 
     // Short-circuit if we are returning a bumped transaction PSBT to clipboard
-    if (retval == QMessageBox::Save) {
+    if (create_psbt) {
         PartiallySignedTransaction psbtx(mtx);
         bool complete = false;
         const TransactionError err = wallet().fillPSBT(SIGHASH_ALL, false /* sign */, true /* bip32derivs */, nullptr, psbtx, complete);
@@ -540,8 +537,6 @@ bool WalletModel::bumpFee(uint256 hash, uint256& new_hash)
         Q_EMIT message(tr("PSBT copied"), "Copied to clipboard", CClientUIInterface::MSG_INFORMATION);
         return true;
     }
-
-    assert(!m_wallet->privateKeysDisabled());
 
     // sign bumped transaction
     if (!m_wallet->signBumpTransaction(mtx)) {
@@ -587,7 +582,7 @@ QString WalletModel::getDisplayName() const
 
 bool WalletModel::isMultiwallet()
 {
-    return m_node.walletLoader().getWallets().size() > 1;
+    return m_node.walletClient().getWallets().size() > 1;
 }
 
 void WalletModel::refresh(bool pk_hash_only)

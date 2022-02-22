@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -36,10 +36,9 @@ FUZZ_TARGET(blockfilter)
         (void)gcs_filter.GetEncoded();
         (void)gcs_filter.Match(ConsumeRandomLengthByteVector(fuzzed_data_provider));
         GCSFilter::ElementSet element_set;
-        LIMITED_WHILE(fuzzed_data_provider.ConsumeBool(), 30000)
-        {
+        while (fuzzed_data_provider.ConsumeBool()) {
             element_set.insert(ConsumeRandomLengthByteVector(fuzzed_data_provider));
+            gcs_filter.MatchAny(element_set);
         }
-        gcs_filter.MatchAny(element_set);
     }
 }

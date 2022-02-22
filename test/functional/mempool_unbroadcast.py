@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Bitcoin Core developers
+# Copyright (c) 2017-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test that the mempool ensures transaction delivery by periodically sending
@@ -8,7 +8,7 @@ to peers until a GETDATA is received."""
 import time
 
 from test_framework.p2p import P2PTxInvStore
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     create_confirmed_utxos,
@@ -16,7 +16,7 @@ from test_framework.util import (
 
 MAX_INITIAL_BROADCAST_DELAY = 15 * 60 # 15 minutes in seconds
 
-class MempoolUnbroadcastTest(BitcoinTestFramework):
+class MempoolUnbroadcastTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
 
@@ -32,7 +32,7 @@ class MempoolUnbroadcastTest(BitcoinTestFramework):
         node = self.nodes[0]
 
         min_relay_fee = node.getnetworkinfo()["relayfee"]
-        utxos = create_confirmed_utxos(self, min_relay_fee, node, 10)
+        utxos = create_confirmed_utxos(min_relay_fee, node, 10)
 
         self.disconnect_nodes(0, 1)
 
@@ -94,7 +94,9 @@ class MempoolUnbroadcastTest(BitcoinTestFramework):
 
         self.log.info("Rebroadcast transaction and ensure it is not added to unbroadcast set when already in mempool")
         rpc_tx_hsh = node.sendrawtransaction(txFS["hex"])
-        assert not node.getmempoolentry(rpc_tx_hsh)['unbroadcast']
+        mempool = node.getrawmempool(True)
+        assert rpc_tx_hsh in mempool
+        assert not mempool[rpc_tx_hsh]['unbroadcast']
 
     def test_txn_removal(self):
         self.log.info("Test that transactions removed from mempool are removed from unbroadcast set")
@@ -109,8 +111,7 @@ class MempoolUnbroadcastTest(BitcoinTestFramework):
         # a block
         removal_reason = "Removed {} from set of unbroadcast txns before confirmation that txn was sent out".format(txhsh)
         with node.assert_debug_log([removal_reason]):
-            self.generate(node, 1, sync_fun=self.no_op)
-
+            node.generate(1)
 
 if __name__ == "__main__":
     MempoolUnbroadcastTest().main()

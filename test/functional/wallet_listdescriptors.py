@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2021 The Bitcoin Core developers
+# Copyright (c) 2014-2021 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the listdescriptors RPC."""
@@ -7,14 +7,14 @@
 from test_framework.descriptors import (
     descsum_create
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
 
 
-class ListDescriptorsTest(BitcoinTestFramework):
+class ListDescriptorsTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
 
@@ -23,7 +23,7 @@ class ListDescriptorsTest(BitcoinTestFramework):
         self.skip_if_no_sqlite()
 
     # do not create any wallet by default
-    def init_wallet(self, *, node):
+    def init_wallet(self, i):
         return
 
     def run_test(self):
@@ -43,9 +43,9 @@ class ListDescriptorsTest(BitcoinTestFramework):
         node.createwallet(wallet_name='w3', descriptors=True)
         result = node.get_wallet_rpc('w3').listdescriptors()
         assert_equal("w3", result['wallet_name'])
-        assert_equal(8, len(result['descriptors']))
-        assert_equal(8, len([d for d in result['descriptors'] if d['active']]))
-        assert_equal(4, len([d for d in result['descriptors'] if d['internal']]))
+        assert_equal(6, len(result['descriptors']))
+        assert_equal(6, len([d for d in result['descriptors'] if d['active']]))
+        assert_equal(3, len([d for d in result['descriptors'] if d['internal']]))
         for item in result['descriptors']:
             assert item['desc'] != ''
             assert item['next'] == 0
@@ -72,38 +72,10 @@ class ListDescriptorsTest(BitcoinTestFramework):
             ],
         }
         assert_equal(expected, wallet.listdescriptors())
-        assert_equal(expected, wallet.listdescriptors(False))
-
-        self.log.info('Test list private descriptors')
-        expected_private = {
-            'wallet_name': 'w2',
-            'descriptors': [
-                {'desc': descsum_create('wpkh(' + xprv + hardened_path + '/0/*)'),
-                 'timestamp': 1296688602,
-                 'active': False,
-                 'range': [0, 0],
-                 'next': 0},
-            ],
-        }
-        assert_equal(expected_private, wallet.listdescriptors(True))
 
         self.log.info("Test listdescriptors with encrypted wallet")
         wallet.encryptwallet("pass")
         assert_equal(expected, wallet.listdescriptors())
-
-        self.log.info('Test list private descriptors with encrypted wallet')
-        assert_raises_rpc_error(-13, 'Please enter the wallet passphrase with walletpassphrase first.', wallet.listdescriptors, True)
-        wallet.walletpassphrase(passphrase="pass", timeout=1000000)
-        assert_equal(expected_private, wallet.listdescriptors(True))
-
-        self.log.info('Test list private descriptors with watch-only wallet')
-        node.createwallet(wallet_name='watch-only', descriptors=True, disable_private_keys=True)
-        watch_only_wallet = node.get_wallet_rpc('watch-only')
-        watch_only_wallet.importdescriptors([{
-            'desc': descsum_create('wpkh(' + xpub_acc + ')'),
-            'timestamp': 1296688602,
-        }])
-        assert_raises_rpc_error(-4, 'Can\'t get descriptor string', watch_only_wallet.listdescriptors, True)
 
         self.log.info('Test non-active non-range combo descriptor')
         node.createwallet(wallet_name='w4', blank=True, descriptors=True)

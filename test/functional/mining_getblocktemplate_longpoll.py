@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2021 The Bitcoin Core developers
+# Copyright (c) 2014-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test longpolling with getblocktemplate."""
@@ -9,7 +9,7 @@ import random
 import threading
 
 from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import get_rpc_proxy
 from test_framework.wallet import MiniWallet
 
@@ -27,7 +27,7 @@ class LongpollThread(threading.Thread):
     def run(self):
         self.node.getblocktemplate({'longpollid': self.longpollid, 'rules': ['segwit']})
 
-class GetBlockTemplateLPTest(BitcoinTestFramework):
+class GetBlockTemplateLPTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.supports_cli = False
@@ -35,7 +35,7 @@ class GetBlockTemplateLPTest(BitcoinTestFramework):
     def run_test(self):
         self.log.info("Warning: this test will take about 70 seconds in the best case. Be patient.")
         self.log.info("Test that longpollid doesn't change between successive getblocktemplate() invocations if nothing else happens")
-        self.generate(self.nodes[0], 10)
+        self.nodes[0].generate(10)
         template = self.nodes[0].getblocktemplate({'rules': ['segwit']})
         longpollid = template['longpollid']
         template2 = self.nodes[0].getblocktemplate({'rules': ['segwit']})
@@ -48,9 +48,9 @@ class GetBlockTemplateLPTest(BitcoinTestFramework):
         thr.join(5)  # wait 5 seconds or until thread exits
         assert thr.is_alive()
 
-        miniwallets = [MiniWallet(node) for node in self.nodes]
+        miniwallets = [ MiniWallet(node) for node in self.nodes ]
         self.log.info("Test that longpoll will terminate if another node generates a block")
-        self.generate(miniwallets[1], 1)  # generate a block on another node
+        miniwallets[1].generate(1)  # generate a block on another node
         # check that thread will exit now that new transaction entered mempool
         thr.join(5)  # wait 5 seconds or until thread exits
         assert not thr.is_alive()
@@ -58,12 +58,13 @@ class GetBlockTemplateLPTest(BitcoinTestFramework):
         self.log.info("Test that longpoll will terminate if we generate a block ourselves")
         thr = LongpollThread(self.nodes[0])
         thr.start()
-        self.generate(miniwallets[0], 1)  # generate a block on own node
+        miniwallets[0].generate(1)  # generate a block on own node
         thr.join(5)  # wait 5 seconds or until thread exits
         assert not thr.is_alive()
 
         # Add enough mature utxos to the wallets, so that all txs spend confirmed coins
-        self.generate(self.nodes[0], COINBASE_MATURITY)
+        self.nodes[0].generate(COINBASE_MATURITY)
+        self.sync_blocks()
 
         self.log.info("Test that introducing a new transaction into the mempool will terminate the longpoll")
         thr = LongpollThread(self.nodes[0])

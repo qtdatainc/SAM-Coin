@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2020 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_QVALIDATEDLINEEDIT_H
-#define BITCOIN_QT_QVALIDATEDLINEEDIT_H
+#ifndef SAMCOIN_QT_QVALIDATEDLINEEDIT_H
+#define SAMCOIN_QT_QVALIDATEDLINEEDIT_H
 
 #include <QLineEdit>
 
@@ -29,7 +29,6 @@ private:
     const QValidator *checkValidator;
 
 public Q_SLOTS:
-    void setText(const QString&);
     void setValid(bool valid);
     void setEnabled(bool enabled);
 
@@ -41,4 +40,4 @@ private Q_SLOTS:
     void checkValidity();
 };
 
-#endif // BITCOIN_QT_QVALIDATEDLINEEDIT_H
+#endif // SAMCOIN_QT_QVALIDATEDLINEEDIT_H

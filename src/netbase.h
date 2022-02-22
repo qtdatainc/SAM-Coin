@@ -1,12 +1,12 @@
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2019 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_NETBASE_H
-#define BITCOIN_NETBASE_H
+#ifndef SAMCOIN_NETBASE_H
+#define SAMCOIN_NETBASE_H
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <compat.h>
@@ -169,14 +169,13 @@ CService LookupNumeric(const std::string& name, uint16_t portDefault = 0, DNSLoo
  * Parse and resolve a specified subnet string into the appropriate internal
  * representation.
  *
- * @param[in]  subnet_str  A string representation of a subnet of the form
- *                         `network address [ "/", ( CIDR-style suffix | netmask ) ]`
- *                         e.g. "2001:db8::/32", "192.0.2.0/255.255.255.0" or "8.8.8.8".
- * @param[out] subnet_out  Internal subnet representation, if parsable/resolvable
- *                         from `subnet_str`.
- * @returns whether the operation succeeded or not.
+ * @param strSubnet A string representation of a subnet of the form `network
+ *                address [ "/", ( CIDR-style suffix | netmask ) ]`(e.g.
+ *                `2001:db8::/32`, `192.0.2.0/255.255.255.0`, or `8.8.8.8`).
+ *
+ * @returns Whether the operation succeeded or not.
  */
-bool LookupSubNet(const std::string& subnet_str, CSubNet& subnet_out);
+bool LookupSubNet(const std::string& strSubnet, CSubNet& subnet, DNSLookupFn dns_lookup_function = g_dns_lookup);
 
 /**
  * Create a TCP socket in the given address family.
@@ -247,4 +246,4 @@ void InterruptSocks5(bool interrupt);
  */
 bool Socks5(const std::string& strDest, uint16_t port, const ProxyCredentials* auth, const Sock& socket);
 
-#endif // BITCOIN_NETBASE_H
+#endif // SAMCOIN_NETBASE_H

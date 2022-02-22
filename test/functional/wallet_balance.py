@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2021 The Bitcoin Core developers
+# Copyright (c) 2018-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the wallet balance RPC methods."""
@@ -8,7 +8,7 @@ import struct
 
 from test_framework.address import ADDRESS_BCRT1_UNSPENDABLE as ADDRESS_WATCHONLY
 from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -45,7 +45,7 @@ def create_transactions(node, address, amt, fees):
 
     return txs
 
-class WalletTest(BitcoinTestFramework):
+class WalletTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.setup_clean_chain = True
@@ -70,9 +70,11 @@ class WalletTest(BitcoinTestFramework):
             assert 'watchonly' not in self.nodes[1].getbalances()
 
         self.log.info("Mining blocks ...")
-        self.generate(self.nodes[0], 1)
-        self.generate(self.nodes[1], 1)
-        self.generatetoaddress(self.nodes[1], COINBASE_MATURITY + 1, ADDRESS_WATCHONLY)
+        self.nodes[0].generate(1)
+        self.sync_all()
+        self.nodes[1].generate(1)
+        self.nodes[1].generatetoaddress(COINBASE_MATURITY + 1, ADDRESS_WATCHONLY)
+        self.sync_all()
 
         if not self.options.descriptors:
             # Tests legacy watchonly behavior which is not present (and does not need to be tested) in descriptor wallets
@@ -98,7 +100,7 @@ class WalletTest(BitcoinTestFramework):
             assert_equal(self.nodes[0].getbalance("*", 1, True), 50)
         assert_equal(self.nodes[1].getbalance(minconf=0, include_watchonly=True), 50)
 
-        # Send 40 BTC from 0 to 1 and 60 BTC from 1 to 0.
+        # Send 40 SAM from 0 to 1 and 60 SAM from 1 to 0.
         txs = create_transactions(self.nodes[0], self.nodes[1].getnewaddress(), 40, [Decimal('0.01')])
         self.nodes[0].sendrawtransaction(txs[0]['hex'])
         self.nodes[1].sendrawtransaction(txs[0]['hex'])  # sending on both nodes is faster than waiting for propagation
@@ -148,7 +150,7 @@ class WalletTest(BitcoinTestFramework):
         # 2) Sent 10 from node B to node A with fee 0.01
         #
         # Then our node would report a confirmed balance of 40 + 50 - 10 = 80
-        # BTC, which is more than would be available if transaction 1 were
+        # SAM, which is more than would be available if transaction 1 were
         # replaced.
 
 
@@ -194,7 +196,8 @@ class WalletTest(BitcoinTestFramework):
         self.log.info("Test getbalance and getbalances.mine.untrusted_pending with conflicted unconfirmed inputs")
         test_balances(fee_node_1=Decimal('0.02'))
 
-        self.generatetoaddress(self.nodes[1], 1, ADDRESS_WATCHONLY)
+        self.nodes[1].generatetoaddress(1, ADDRESS_WATCHONLY)
+        self.sync_all()
 
         # balances are correct after the transactions are confirmed
         balance_node0 = Decimal('69.99')  # node 1's send plus change from node 0's send
@@ -207,7 +210,8 @@ class WalletTest(BitcoinTestFramework):
         # Send total balance away from node 1
         txs = create_transactions(self.nodes[1], self.nodes[0].getnewaddress(), Decimal('29.97'), [Decimal('0.01')])
         self.nodes[1].sendrawtransaction(txs[0]['hex'])
-        self.generatetoaddress(self.nodes[1], 2, ADDRESS_WATCHONLY)
+        self.nodes[1].generatetoaddress(2, ADDRESS_WATCHONLY)
+        self.sync_all()
 
         # getbalance with a minconf incorrectly excludes coins that have been spent more recently than the minconf blocks ago
         # TODO: fix getbalance tracking of coin spentness depth
@@ -253,14 +257,15 @@ class WalletTest(BitcoinTestFramework):
         self.nodes[1].sendrawtransaction(hexstring=tx_replace, maxfeerate=0)
 
         # Now confirm tx_replace
-        block_reorg = self.generatetoaddress(self.nodes[1], 1, ADDRESS_WATCHONLY)[0]
+        block_reorg = self.nodes[1].generatetoaddress(1, ADDRESS_WATCHONLY)[0]
+        self.sync_all()
         assert_equal(self.nodes[0].getbalance(minconf=0), total_amount)
 
         self.log.info('Put txs back into mempool of node 1 (not node 0)')
         self.nodes[0].invalidateblock(block_reorg)
         self.nodes[1].invalidateblock(block_reorg)
         assert_equal(self.nodes[0].getbalance(minconf=0), 0)  # wallet txs not in the mempool are untrusted
-        self.generatetoaddress(self.nodes[0], 1, ADDRESS_WATCHONLY, sync_fun=self.no_op)
+        self.nodes[0].generatetoaddress(1, ADDRESS_WATCHONLY)
         assert_equal(self.nodes[0].getbalance(minconf=0), 0)  # wallet txs not in the mempool are untrusted
 
         # Now confirm tx_orig
@@ -268,7 +273,8 @@ class WalletTest(BitcoinTestFramework):
         self.connect_nodes(0, 1)
         self.sync_blocks()
         self.nodes[1].sendrawtransaction(tx_orig)
-        self.generatetoaddress(self.nodes[1], 1, ADDRESS_WATCHONLY)
+        self.nodes[1].generatetoaddress(1, ADDRESS_WATCHONLY)
+        self.sync_all()
         assert_equal(self.nodes[0].getbalance(minconf=0), total_amount + 1)  # The reorg recovered our fee of 1 coin
 
 

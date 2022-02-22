@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-# Copyright (c) 2017-2021 The Bitcoin Core developers
+# Copyright (c) 2017-2018 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test external signer.
 
-Verify that a bitcoind node can use an external signer command.
+Verify that a samcoind node can use an external signer command.
 See also wallet_signer.py for tests that require wallet context.
 """
 import os
 import platform
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
 
 
-class RPCSignerTest(BitcoinTestFramework):
+class RPCSignerTest(SamcoinTestFramework):
     def mock_signer_path(self):
         path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'mocks', 'signer.py')
         if platform.system() == "Windows":
@@ -27,9 +27,6 @@ class RPCSignerTest(BitcoinTestFramework):
 
     def set_test_params(self):
         self.num_nodes = 4
-        # The experimental syscall sandbox feature (-sandbox) is not compatible with -signer (which
-        # invokes execve).
-        self.disable_syscall_sandbox = True
 
         self.extra_args = [
             [],
@@ -51,17 +48,13 @@ class RPCSignerTest(BitcoinTestFramework):
     def run_test(self):
         self.log.debug(f"-signer={self.mock_signer_path()}")
 
-        assert_raises_rpc_error(-1, 'Error: restart bitcoind with -signer=<cmd>',
+        assert_raises_rpc_error(-1, 'Error: restart samcoind with -signer=<cmd>',
             self.nodes[0].enumeratesigners
         )
 
         # Handle script missing:
-        assert_raises_rpc_error(
-            -1,
-            "CreateProcess failed: The system cannot find the file specified."
-            if platform.system() == "Windows"
-            else "execve failed: No such file or directory",
-            self.nodes[3].enumeratesigners,
+        assert_raises_rpc_error(-1, 'execve failed: No such file or directory',
+            self.nodes[3].enumeratesigners
         )
 
         # Handle error thrown by script

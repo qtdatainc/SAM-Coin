@@ -1,9 +1,9 @@
-// Copyright (c) 2020 The Bitcoin Core developers
+// Copyright (c) 2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_TEST_UTIL_VALIDATION_H
-#define BITCOIN_TEST_UTIL_VALIDATION_H
+#ifndef SAMCOIN_TEST_UTIL_VALIDATION_H
+#define SAMCOIN_TEST_UTIL_VALIDATION_H
 
 #include <validation.h>
 
@@ -14,4 +14,4 @@ struct TestChainState : public CChainState {
     void JumpOutOfIbd();
 };
 
-#endif // BITCOIN_TEST_UTIL_VALIDATION_H
+#endif // SAMCOIN_TEST_UTIL_VALIDATION_H

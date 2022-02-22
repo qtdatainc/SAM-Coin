@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2021 The Bitcoin Core developers
+// Copyright (c) 2012-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -93,10 +93,10 @@ bool static TestSplitHost(const std::string& test, const std::string& host, uint
 
 BOOST_AUTO_TEST_CASE(netbase_splithost)
 {
-    BOOST_CHECK(TestSplitHost("www.bitcoincore.org", "www.bitcoincore.org", 0));
-    BOOST_CHECK(TestSplitHost("[www.bitcoincore.org]", "www.bitcoincore.org", 0));
-    BOOST_CHECK(TestSplitHost("www.bitcoincore.org:80", "www.bitcoincore.org", 80));
-    BOOST_CHECK(TestSplitHost("[www.bitcoincore.org]:80", "www.bitcoincore.org", 80));
+    BOOST_CHECK(TestSplitHost("www.samcoincore.org", "www.samcoincore.org", 0));
+    BOOST_CHECK(TestSplitHost("[www.samcoincore.org]", "www.samcoincore.org", 0));
+    BOOST_CHECK(TestSplitHost("www.samcoincore.org:80", "www.samcoincore.org", 80));
+    BOOST_CHECK(TestSplitHost("[www.samcoincore.org]:80", "www.samcoincore.org", 80));
     BOOST_CHECK(TestSplitHost("127.0.0.1", "127.0.0.1", 0));
     BOOST_CHECK(TestSplitHost("127.0.0.1:8333", "127.0.0.1", 8333));
     BOOST_CHECK(TestSplitHost("[127.0.0.1]", "127.0.0.1", 0));
@@ -339,13 +339,11 @@ BOOST_AUTO_TEST_CASE(netbase_parsenetwork)
     BOOST_CHECK_EQUAL(ParseNetwork("ipv6"), NET_IPV6);
     BOOST_CHECK_EQUAL(ParseNetwork("onion"), NET_ONION);
     BOOST_CHECK_EQUAL(ParseNetwork("tor"), NET_ONION);
-    BOOST_CHECK_EQUAL(ParseNetwork("cjdns"), NET_CJDNS);
 
     BOOST_CHECK_EQUAL(ParseNetwork("IPv4"), NET_IPV4);
     BOOST_CHECK_EQUAL(ParseNetwork("IPv6"), NET_IPV6);
     BOOST_CHECK_EQUAL(ParseNetwork("ONION"), NET_ONION);
     BOOST_CHECK_EQUAL(ParseNetwork("TOR"), NET_ONION);
-    BOOST_CHECK_EQUAL(ParseNetwork("CJDNS"), NET_CJDNS);
 
     BOOST_CHECK_EQUAL(ParseNetwork(":)"), NET_UNROUTABLE);
     BOOST_CHECK_EQUAL(ParseNetwork("tÖr"), NET_UNROUTABLE);

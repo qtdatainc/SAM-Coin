@@ -1,11 +1,11 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_GUIUTIL_H
-#define BITCOIN_QT_GUIUTIL_H
+#ifndef SAMCOIN_QT_GUIUTIL_H
+#define SAMCOIN_QT_GUIUTIL_H
 
-#include <consensus/amount.h>
+#include <amount.h>
 #include <fs.h>
 #include <net.h>
 #include <netaddress.h>
@@ -41,7 +41,6 @@ class QAbstractButton;
 class QAbstractItemView;
 class QAction;
 class QDateTime;
-class QDialog;
 class QFont;
 class QKeySequence;
 class QLineEdit;
@@ -52,7 +51,7 @@ class QUrl;
 class QWidget;
 QT_END_NAMESPACE
 
-/** Utility functions used by the Bitcoin Qt UI.
+/** Utility functions used by the Samcoin Qt UI.
  */
 namespace GUIUtil
 {
@@ -77,10 +76,10 @@ namespace GUIUtil
      */
     void AddButtonShortcut(QAbstractButton* button, const QKeySequence& shortcut);
 
-    // Parse "bitcoin:" URI into recipient object, return true on successful parsing
-    bool parseBitcoinURI(const QUrl &uri, SendCoinsRecipient *out);
-    bool parseBitcoinURI(QString uri, SendCoinsRecipient *out);
-    QString formatBitcoinURI(const SendCoinsRecipient &info);
+    // Parse "samcoin:" URI into recipient object, return true on successful parsing
+    bool parseSamcoinURI(const QUrl &uri, SendCoinsRecipient *out);
+    bool parseSamcoinURI(QString uri, SendCoinsRecipient *out);
+    QString formatSamcoinURI(const SendCoinsRecipient &info);
 
     // Returns true if given address+amount meets "dust" definition
     bool isDust(interfaces::Node& node, const QString& address, const CAmount& amount);
@@ -112,11 +111,6 @@ namespace GUIUtil
     bool hasEntryData(const QAbstractItemView *view, int column, int role);
 
     void setClipboard(const QString& str);
-
-    /**
-     * Loads the font from the file specified by file_name, aborts if it fails.
-     */
-    void LoadFont(const QString& file_name);
 
     /**
      * Determine default data directory for operating system.
@@ -170,7 +164,7 @@ namespace GUIUtil
     void openDebugLogfile();
 
     // Open the config file
-    bool openBitcoinConf();
+    bool openSamcoinConf();
 
     /** Qt event filter that intercepts ToolTipChange events, and replaces the tooltip with a rich text
       representation if needed. This assures that Qt can word-wrap long tooltip messages.
@@ -209,10 +203,10 @@ namespace GUIUtil
     bool SetStartOnSystemStartup(bool fAutoStart);
 
     /** Convert QString to OS specific boost path through UTF-8 */
-    fs::path QStringToPath(const QString &path);
+    fs::path qstringToBoostPath(const QString &path);
 
     /** Convert OS specific boost path to QString through UTF-8 */
-    QString PathToQString(const fs::path &path);
+    QString boostPathToQString(const fs::path &path);
 
     /** Convert enum Network to QString */
     QString NetworkToQString(Network net);
@@ -221,7 +215,7 @@ namespace GUIUtil
     QString ConnectionTypeToQString(ConnectionType conn_type, bool prepend_direction);
 
     /** Convert seconds into a QString with days, hours, mins, secs */
-    QString formatDurationStr(std::chrono::seconds dur);
+    QString formatDurationStr(int secs);
 
     /** Format CNodeStats.nServices bitmask into a user-readable string */
     QString formatServicesStr(quint64 mask);
@@ -423,20 +417,6 @@ namespace GUIUtil
             type);
     }
 
-    /**
-     * Shows a QDialog instance asynchronously, and deletes it on close.
-     */
-    void ShowModalDialogAsynchronously(QDialog* dialog);
-
-    inline bool IsEscapeOrBack(int key)
-    {
-        if (key == Qt::Key_Escape) return true;
-#ifdef Q_OS_ANDROID
-        if (key == Qt::Key_Back) return true;
-#endif // Q_OS_ANDROID
-        return false;
-    }
-
 } // namespace GUIUtil
 
-#endif // BITCOIN_QT_GUIUTIL_H
+#endif // SAMCOIN_QT_GUIUTIL_H

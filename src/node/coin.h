@@ -1,16 +1,14 @@
-// Copyright (c) 2019 The Bitcoin Core developers
+// Copyright (c) 2019 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_NODE_COIN_H
-#define BITCOIN_NODE_COIN_H
+#ifndef SAMCOIN_NODE_COIN_H
+#define SAMCOIN_NODE_COIN_H
 
 #include <map>
 
 class COutPoint;
 class Coin;
-
-namespace node {
 struct NodeContext;
 
 /**
@@ -21,7 +19,6 @@ struct NodeContext;
  * @param[in] node The node context to use for lookup
  * @param[in,out] coins map to fill
  */
-void FindCoins(const node::NodeContext& node, std::map<COutPoint, Coin>& coins);
-} // namespace node
+void FindCoins(const NodeContext& node, std::map<COutPoint, Coin>& coins);
 
-#endif // BITCOIN_NODE_COIN_H
+#endif // SAMCOIN_NODE_COIN_H

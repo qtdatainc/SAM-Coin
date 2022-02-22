@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2021 The Bitcoin Core developers
+// Copyright (c) 2016-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,7 +15,7 @@
 // many times micro-benchmarks of the database showed completely different
 // characteristics than e.g. reindex timings. But that's not a requirement of
 // every benchmark."
-// (https://github.com/bitcoin/bitcoin/issues/7883#issuecomment-224807484)
+// (https://github.com/samcoin/samcoin/issues/7883#issuecomment-224807484)
 static void CCoinsCaching(benchmark::Bench& bench)
 {
     const ECCVerifyHandle verify_handle;
@@ -45,7 +45,7 @@ static void CCoinsCaching(benchmark::Bench& bench)
     // Benchmark.
     const CTransaction tx_1(t1);
     bench.run([&] {
-        bool success{AreInputsStandard(tx_1, coins)};
+        bool success = AreInputsStandard(tx_1, coins, false);
         assert(success);
     });
     ECC_Stop();

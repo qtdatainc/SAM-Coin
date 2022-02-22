@@ -1,9 +1,8 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <fs.h>
 #include <wallet/bdb.h>
 #include <wallet/db.h>
 
@@ -16,7 +15,6 @@
 #include <sys/stat.h>
 #endif
 
-namespace wallet {
 namespace {
 
 //! Make sure database has a unique fileid within the environment. If it
@@ -26,7 +24,7 @@ namespace {
 //!
 //! BerkeleyDB generates unique fileids by default
 //! (https://docs.oracle.com/cd/E17275_01/html/programmer_reference/program_copy.html),
-//! so bitcoin should never create different databases with the same fileid, but
+//! so samcoin should never create different databases with the same fileid, but
 //! this error can be triggered if users manually copy database files.
 void CheckUniqueFileid(const BerkeleyEnvironment& env, const std::string& filename, Db& db, WalletDatabaseFileId& fileid)
 {
@@ -63,9 +61,9 @@ bool WalletDatabaseFileId::operator==(const WalletDatabaseFileId& rhs) const
 std::shared_ptr<BerkeleyEnvironment> GetBerkeleyEnv(const fs::path& env_directory)
 {
     LOCK(cs_db);
-    auto inserted = g_dbenvs.emplace(fs::PathToString(env_directory), std::weak_ptr<BerkeleyEnvironment>());
+    auto inserted = g_dbenvs.emplace(env_directory.string(), std::weak_ptr<BerkeleyEnvironment>());
     if (inserted.second) {
-        auto env = std::make_shared<BerkeleyEnvironment>(env_directory);
+        auto env = std::make_shared<BerkeleyEnvironment>(env_directory.string());
         inserted.first->second = env;
         return env;
     }
@@ -103,7 +101,7 @@ void BerkeleyEnvironment::Close()
 
     if (error_file) fclose(error_file);
 
-    UnlockDirectory(fs::PathFromString(strPath), ".walletlock");
+    UnlockDirectory(strPath, ".walletlock");
 }
 
 void BerkeleyEnvironment::Reset()
@@ -113,7 +111,7 @@ void BerkeleyEnvironment::Reset()
     fMockDb = false;
 }
 
-BerkeleyEnvironment::BerkeleyEnvironment(const fs::path& dir_path) : strPath(fs::PathToString(dir_path))
+BerkeleyEnvironment::BerkeleyEnvironment(const fs::path& dir_path) : strPath(dir_path.string())
 {
     Reset();
 }
@@ -131,24 +129,24 @@ bool BerkeleyEnvironment::Open(bilingual_str& err)
         return true;
     }
 
-    fs::path pathIn = fs::PathFromString(strPath);
+    fs::path pathIn = strPath;
     TryCreateDirectories(pathIn);
     if (!LockDirectory(pathIn, ".walletlock")) {
-        LogPrintf("Cannot obtain a lock on wallet directory %s. Another instance may be using it.\n", strPath);
-        err = strprintf(_("Error initializing wallet database environment %s!"), fs::quoted(fs::PathToString(Directory())));
+        LogPrintf("Cannot obtain a lock on wallet directory %s. Another instance of samcoin may be using it.\n", strPath);
+        err = strprintf(_("Error initializing wallet database environment %s!"), Directory());
         return false;
     }
 
     fs::path pathLogDir = pathIn / "database";
     TryCreateDirectories(pathLogDir);
     fs::path pathErrorFile = pathIn / "db.log";
-    LogPrintf("BerkeleyEnvironment::Open: LogDir=%s ErrorFile=%s\n", fs::PathToString(pathLogDir), fs::PathToString(pathErrorFile));
+    LogPrintf("BerkeleyEnvironment::Open: LogDir=%s ErrorFile=%s\n", pathLogDir.string(), pathErrorFile.string());
 
     unsigned int nEnvFlags = 0;
     if (gArgs.GetBoolArg("-privdb", DEFAULT_WALLET_PRIVDB))
         nEnvFlags |= DB_PRIVATE;
 
-    dbenv->set_lg_dir(fs::PathToString(pathLogDir).c_str());
+    dbenv->set_lg_dir(pathLogDir.string().c_str());
     dbenv->set_cachesize(0, 0x100000, 1); // 1 MiB should be enough for just the wallet
     dbenv->set_lg_bsize(0x10000);
     dbenv->set_lg_max(1048576);
@@ -175,7 +173,7 @@ bool BerkeleyEnvironment::Open(bilingual_str& err)
             LogPrintf("BerkeleyEnvironment::Open: Error %d closing failed database environment: %s\n", ret2, DbEnv::strerror(ret2));
         }
         Reset();
-        err = strprintf(_("Error initializing wallet database environment %s!"), fs::quoted(fs::PathToString(Directory())));
+        err = strprintf(_("Error initializing wallet database environment %s!"), Directory());
         if (ret == DB_RUNRECOVERY) {
             err += Untranslated(" ") + _("This error could occur if this wallet was not shutdown cleanly and was last loaded using a build with a newer version of Berkeley DB. If so, please use the software that last loaded this wallet");
         }
@@ -263,7 +261,7 @@ bool BerkeleyDatabase::Verify(bilingual_str& errorStr)
     fs::path file_path = walletDir / strFile;
 
     LogPrintf("Using BerkeleyDB version %s\n", BerkeleyDatabaseVersion());
-    LogPrintf("Using wallet %s\n", fs::PathToString(file_path));
+    LogPrintf("Using wallet %s\n", file_path.string());
 
     if (!env->Open(errorStr)) {
         return false;
@@ -276,7 +274,7 @@ bool BerkeleyDatabase::Verify(bilingual_str& errorStr)
         Db db(env->dbenv.get(), 0);
         int result = db.verify(strFile.c_str(), nullptr, nullptr, 0);
         if (result != 0) {
-            errorStr = strprintf(_("%s corrupt. Try using the wallet tool bitcoin-wallet to salvage or restoring a backup."), fs::quoted(fs::PathToString(file_path)));
+            errorStr = strprintf(_("%s corrupt. Try using the wallet tool samcoin-wallet to salvage or restoring a backup."), file_path);
             return false;
         }
     }
@@ -377,7 +375,7 @@ void BerkeleyBatch::Flush()
         nMinutes = 1;
 
     if (env) { // env is nullptr for dummy databases (i.e. in tests). Don't actually flush if env is nullptr so we don't segfault
-        env->dbenv->txn_checkpoint(nMinutes ? gArgs.GetIntArg("-dblogsize", DEFAULT_WALLET_DBLOGSIZE) * 1024 : 0, nMinutes, 0);
+        env->dbenv->txn_checkpoint(nMinutes ? gArgs.GetArg("-dblogsize", DEFAULT_WALLET_DBLOGSIZE) * 1024 : 0, nMinutes, 0);
     }
 }
 
@@ -568,7 +566,7 @@ void BerkeleyEnvironment::Flush(bool fShutdown)
                 dbenv->log_archive(&listp, DB_ARCH_REMOVE);
                 Close();
                 if (!fMockDb) {
-                    fs::remove_all(fs::PathFromString(strPath) / "database");
+                    fs::remove_all(fs::path(strPath) / "database");
                 }
             }
         }
@@ -616,21 +614,21 @@ bool BerkeleyDatabase::Backup(const std::string& strDest) const
 
                 // Copy wallet file
                 fs::path pathSrc = env->Directory() / strFile;
-                fs::path pathDest(fs::PathFromString(strDest));
+                fs::path pathDest(strDest);
                 if (fs::is_directory(pathDest))
-                    pathDest /= fs::PathFromString(strFile);
+                    pathDest /= strFile;
 
                 try {
-                    if (fs::exists(pathDest) && fs::equivalent(pathSrc, pathDest)) {
-                        LogPrintf("cannot backup to wallet source file %s\n", fs::PathToString(pathDest));
+                    if (fs::equivalent(pathSrc, pathDest)) {
+                        LogPrintf("cannot backup to wallet source file %s\n", pathDest.string());
                         return false;
                     }
 
-                    fs::copy_file(pathSrc, pathDest, fs::copy_options::overwrite_existing);
-                    LogPrintf("copied %s to %s\n", strFile, fs::PathToString(pathDest));
+                    fs::copy_file(pathSrc, pathDest, fs::copy_option::overwrite_if_exists);
+                    LogPrintf("copied %s to %s\n", strFile, pathDest.string());
                     return true;
                 } catch (const fs::filesystem_error& e) {
-                    LogPrintf("error copying %s to %s - %s\n", strFile, fs::PathToString(pathDest), fsbridge::get_filesystem_error_message(e));
+                    LogPrintf("error copying %s to %s - %s\n", strFile, pathDest.string(), fsbridge::get_filesystem_error_message(e));
                     return false;
                 }
             }
@@ -682,10 +680,10 @@ bool BerkeleyBatch::ReadAtCursor(CDataStream& ssKey, CDataStream& ssValue, bool&
     // Convert to streams
     ssKey.SetType(SER_DISK);
     ssKey.clear();
-    ssKey.write({BytePtr(datKey.get_data()), datKey.get_size()});
+    ssKey.write((char*)datKey.get_data(), datKey.get_size());
     ssValue.SetType(SER_DISK);
     ssValue.clear();
-    ssValue.write({BytePtr(datValue.get_data()), datValue.get_size()});
+    ssValue.write((char*)datValue.get_data(), datValue.get_size());
     return true;
 }
 
@@ -757,7 +755,7 @@ bool BerkeleyBatch::ReadKey(CDataStream&& key, CDataStream& value)
     SafeDbt datValue;
     int ret = pdb->get(activeTxn, datKey, datValue, 0);
     if (ret == 0 && datValue.get_data() != nullptr) {
-        value.write({BytePtr(datValue.get_data()), datValue.get_size()});
+        value.write((char*)datValue.get_data(), datValue.get_size());
         return true;
     }
     return false;
@@ -830,10 +828,10 @@ std::unique_ptr<BerkeleyDatabase> MakeBerkeleyDatabase(const fs::path& path, con
     std::unique_ptr<BerkeleyDatabase> db;
     {
         LOCK(cs_db); // Lock env.m_databases until insert in BerkeleyDatabase constructor
-        std::string data_filename = fs::PathToString(data_file.filename());
+        std::string data_filename = data_file.filename().string();
         std::shared_ptr<BerkeleyEnvironment> env = GetBerkeleyEnv(data_file.parent_path());
         if (env->m_databases.count(data_filename)) {
-            error = Untranslated(strprintf("Refusing to load database. Data file '%s' is already loaded.", fs::PathToString(env->Directory() / data_filename)));
+            error = Untranslated(strprintf("Refusing to load database. Data file '%s' is already loaded.", (env->Directory() / data_filename).string()));
             status = DatabaseStatus::FAILED_ALREADY_LOADED;
             return nullptr;
         }
@@ -848,4 +846,3 @@ std::unique_ptr<BerkeleyDatabase> MakeBerkeleyDatabase(const fs::path& path, con
     status = DatabaseStatus::SUCCESS;
     return db;
 }
-} // namespace wallet

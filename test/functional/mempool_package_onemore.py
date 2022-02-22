@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2021 The Bitcoin Core developers
+# Copyright (c) 2014-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test descendant package tracking carve-out allowing one final transaction in
@@ -10,7 +10,7 @@
 from decimal import Decimal
 
 from test_framework.blocktools import COINBASE_MATURITY
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -20,7 +20,7 @@ from test_framework.util import (
 MAX_ANCESTORS = 25
 MAX_DESCENDANTS = 25
 
-class MempoolPackagesTest(BitcoinTestFramework):
+class MempoolPackagesTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [["-maxorphantx=1000"]]
@@ -30,7 +30,7 @@ class MempoolPackagesTest(BitcoinTestFramework):
 
     def run_test(self):
         # Mine some blocks and have them mature.
-        self.generate(self.nodes[0], COINBASE_MATURITY + 1)
+        self.nodes[0].generate(COINBASE_MATURITY + 1)
         utxo = self.nodes[0].listunspent(10)
         txid = utxo[0]['txid']
         vout = utxo[0]['vout']
@@ -51,7 +51,7 @@ class MempoolPackagesTest(BitcoinTestFramework):
         (second_chain, second_chain_value) = chain_transaction(self.nodes[0], [utxo[1]['txid']], [utxo[1]['vout']], utxo[1]['amount'], fee, 1)
 
         # Check mempool has MAX_ANCESTORS + 1 transactions in it
-        assert_equal(len(self.nodes[0].getrawmempool()), MAX_ANCESTORS + 1)
+        assert_equal(len(self.nodes[0].getrawmempool(True)), MAX_ANCESTORS + 1)
 
         # Adding one more transaction on to the chain should fail.
         assert_raises_rpc_error(-26, "too-long-mempool-chain, too many unconfirmed ancestors [limit: 25]", chain_transaction, self.nodes[0], [txid], [0], value, fee, 1)
@@ -74,7 +74,7 @@ class MempoolPackagesTest(BitcoinTestFramework):
         self.nodes[0].sendrawtransaction(signed_second_tx['hex'])
 
         # Finally, check that we added two transactions
-        assert_equal(len(self.nodes[0].getrawmempool()), MAX_ANCESTORS + 3)
+        assert_equal(len(self.nodes[0].getrawmempool(True)), MAX_ANCESTORS + 3)
 
 if __name__ == '__main__':
     MempoolPackagesTest().main()

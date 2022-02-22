@@ -1,12 +1,6 @@
-// Copyright (c) 2016-2021 The Bitcoin Core developers
+// Copyright (c) 2016-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
-
-#include <wallet/wallettool.h>
 
 #include <fs.h>
 #include <util/system.h>
@@ -16,11 +10,10 @@
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 
-namespace wallet {
 namespace WalletTool {
 
 // The standard wallet deleter function blocks on the validation interface
-// queue, which doesn't exist for the bitcoin-wallet. Define our own
+// queue, which doesn't exist for the samcoin-wallet. Define our own
 // deleter here.
 static void WalletToolReleaseWallet(CWallet* wallet)
 {
@@ -33,7 +26,7 @@ static void WalletCreate(CWallet* wallet_instance, uint64_t wallet_creation_flag
 {
     LOCK(wallet_instance->cs_wallet);
 
-    wallet_instance->SetMinVersion(FEATURE_LATEST);
+    wallet_instance->SetMinVersion(FEATURE_HD_SPLIT);
     wallet_instance->AddWalletFlags(wallet_creation_flags);
 
     if (!wallet_instance->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
@@ -47,7 +40,7 @@ static void WalletCreate(CWallet* wallet_instance, uint64_t wallet_creation_flag
     wallet_instance->TopUpKeyPool();
 }
 
-static const std::shared_ptr<CWallet> MakeWallet(const std::string& name, const fs::path& path, const ArgsManager& args, DatabaseOptions options)
+static std::shared_ptr<CWallet> MakeWallet(const std::string& name, const fs::path& path, DatabaseOptions options)
 {
     DatabaseStatus status;
     bilingual_str error;
@@ -58,7 +51,7 @@ static const std::shared_ptr<CWallet> MakeWallet(const std::string& name, const 
     }
 
     // dummy chain interface
-    std::shared_ptr<CWallet> wallet_instance{new CWallet(nullptr /* chain */, name, args, std::move(database)), WalletToolReleaseWallet};
+    std::shared_ptr<CWallet> wallet_instance{new CWallet(nullptr /* chain */, name, std::move(database)), WalletToolReleaseWallet};
     DBErrors load_wallet_ret;
     try {
         load_wallet_ret = wallet_instance->LoadWallet();
@@ -83,10 +76,6 @@ static const std::shared_ptr<CWallet> MakeWallet(const std::string& name, const 
         } else if (load_wallet_ret == DBErrors::NEED_REWRITE) {
             tfm::format(std::cerr, "Wallet needed to be rewritten: restart %s to complete", PACKAGE_NAME);
             return nullptr;
-        } else if (load_wallet_ret == DBErrors::NEED_RESCAN) {
-            tfm::format(std::cerr, "Error reading %s! Some transaction data might be missing or"
-                           " incorrect. Wallet requires a rescan.",
-                name);
         } else {
             tfm::format(std::cerr, "Error loading %s", name);
             return nullptr;
@@ -127,38 +116,22 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
         tfm::format(std::cerr, "The -descriptors option can only be used with the 'create' command.\n");
         return false;
     }
-    if (args.IsArgSet("-legacy") && command != "create") {
-        tfm::format(std::cerr, "The -legacy option can only be used with the 'create' command.\n");
-        return false;
-    }
     if (command == "create" && !args.IsArgSet("-wallet")) {
         tfm::format(std::cerr, "Wallet name must be provided when creating a new wallet.\n");
         return false;
     }
     const std::string name = args.GetArg("-wallet", "");
-    const fs::path path = fsbridge::AbsPathJoin(GetWalletDir(), fs::PathFromString(name));
+    const fs::path path = fsbridge::AbsPathJoin(GetWalletDir(), name);
 
     if (command == "create") {
         DatabaseOptions options;
         options.require_create = true;
-        // If -legacy is set, use it. Otherwise default to false.
-        bool make_legacy = args.GetBoolArg("-legacy", false);
-        // If neither -legacy nor -descriptors is set, default to true. If -descriptors is set, use its value.
-        bool make_descriptors = (!args.IsArgSet("-descriptors") && !args.IsArgSet("-legacy")) || (args.IsArgSet("-descriptors") && args.GetBoolArg("-descriptors", true));
-        if (make_legacy && make_descriptors) {
-            tfm::format(std::cerr, "Only one of -legacy or -descriptors can be set to true, not both\n");
-            return false;
-        }
-        if (!make_legacy && !make_descriptors) {
-            tfm::format(std::cerr, "One of -legacy or -descriptors must be set to true (or omitted)\n");
-            return false;
-        }
-        if (make_descriptors) {
+        if (args.GetBoolArg("-descriptors", false)) {
             options.create_flags |= WALLET_FLAG_DESCRIPTORS;
             options.require_format = DatabaseFormat::SQLITE;
         }
 
-        const std::shared_ptr<CWallet> wallet_instance = MakeWallet(name, path, args, options);
+        std::shared_ptr<CWallet> wallet_instance = MakeWallet(name, path, options);
         if (wallet_instance) {
             WalletShowInfo(wallet_instance.get());
             wallet_instance->Close();
@@ -166,7 +139,7 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
     } else if (command == "info") {
         DatabaseOptions options;
         options.require_existing = true;
-        const std::shared_ptr<CWallet> wallet_instance = MakeWallet(name, path, args, options);
+        std::shared_ptr<CWallet> wallet_instance = MakeWallet(name, path, options);
         if (!wallet_instance) return false;
         WalletShowInfo(wallet_instance.get());
         wallet_instance->Close();
@@ -191,7 +164,7 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
     } else if (command == "dump") {
         DatabaseOptions options;
         options.require_existing = true;
-        const std::shared_ptr<CWallet> wallet_instance = MakeWallet(name, path, args, options);
+        std::shared_ptr<CWallet> wallet_instance = MakeWallet(name, path, options);
         if (!wallet_instance) return false;
         bilingual_str error;
         bool ret = DumpWallet(*wallet_instance, error);
@@ -199,7 +172,7 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
             tfm::format(std::cerr, "%s\n", error.original);
             return ret;
         }
-        tfm::format(std::cout, "The dumpfile may contain private keys. To ensure the safety of your Bitcoin, do not share the dumpfile.\n");
+        tfm::format(std::cout, "The dumpfile may contain private keys. To ensure the safety of your Samcoin, do not share the dumpfile.\n");
         return ret;
     } else if (command == "createfromdump") {
         bilingual_str error;
@@ -220,4 +193,3 @@ bool ExecuteWalletToolFunc(const ArgsManager& args, const std::string& command)
     return true;
 }
 } // namespace WalletTool
-} // namespace wallet

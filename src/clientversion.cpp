@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2021 The Bitcoin Core developers
+// Copyright (c) 2012-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,7 +9,7 @@
 
 /**
  * Name of client reported in the 'version' message. Report the same name
- * for both bitcoind and bitcoin-qt, to make it harder for attackers to
+ * for both samcoind and samcoin-qt, to make it harder for attackers to
  * target servers or GUI users specifically.
  */
 const std::string CLIENT_NAME("Satoshi");
@@ -42,6 +42,8 @@ const std::string CLIENT_NAME("Satoshi");
     #endif
 #endif
 
+const std::string CLIENT_BUILD(BUILD_DESC BUILD_SUFFIX);
+
 static std::string FormatVersion(int nVersion)
 {
     return strprintf("%d.%d.%d", nVersion / 10000, (nVersion / 100) % 100, nVersion % 100);
@@ -49,12 +51,11 @@ static std::string FormatVersion(int nVersion)
 
 std::string FormatFullVersion()
 {
-    static const std::string CLIENT_BUILD(BUILD_DESC BUILD_SUFFIX);
     return CLIENT_BUILD;
 }
 
 /**
- * Format the subversion field according to BIP 14 spec (https://github.com/bitcoin/bips/blob/master/bip-0014.mediawiki)
+ * Format the subversion field according to BIP 14 spec (https://github.com/samcoin/bips/blob/master/bip-0014.mediawiki)
  */
 std::string FormatSubVersion(const std::string& name, int nClientVersion, const std::vector<std::string>& comments)
 {

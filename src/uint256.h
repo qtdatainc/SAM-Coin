@@ -1,12 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UINT256_H
-#define BITCOIN_UINT256_H
-
-#include <span.h>
+#ifndef SAMCOIN_UINT256_H
+#define SAMCOIN_UINT256_H
 
 #include <assert.h>
 #include <cstring>
@@ -98,13 +96,13 @@ public:
     template<typename Stream>
     void Serialize(Stream& s) const
     {
-        s.write(MakeByteSpan(m_data));
+        s.write((char*)m_data, sizeof(m_data));
     }
 
     template<typename Stream>
     void Unserialize(Stream& s)
     {
-        s.read(MakeWritableByteSpan(m_data));
+        s.read((char*)m_data, sizeof(m_data));
     }
 };
 
@@ -153,4 +151,4 @@ inline uint256 uint256S(const std::string& str)
     return rv;
 }
 
-#endif // BITCOIN_UINT256_H
+#endif // SAMCOIN_UINT256_H

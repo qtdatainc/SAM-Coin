@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2021 The Bitcoin Core developers
+// Copyright (c) 2012-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -18,17 +18,7 @@
 #include <utility>
 #include <vector>
 
-/**
- * Identical to TestingSetup but excludes lock contention logging, as some of
- * these tests are designed to be heavily contested to trigger race conditions
- * or other issues.
- */
-struct NoLockLoggingTestingSetup : public TestingSetup {
-    NoLockLoggingTestingSetup()
-        : TestingSetup{CBaseChainParams::MAIN, /*extra_args=*/{"-debugexclude=lock"}} {}
-};
-
-BOOST_FIXTURE_TEST_SUITE(checkqueue_tests, NoLockLoggingTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(checkqueue_tests, TestingSetup)
 
 static const unsigned int QUEUE_BATCH_SIZE = 128;
 static const int SCRIPT_CHECK_THREADS = 3;

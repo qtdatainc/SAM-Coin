@@ -1,9 +1,9 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_PEERTABLEMODEL_H
-#define BITCOIN_QT_PEERTABLEMODEL_H
+#ifndef SAMCOIN_QT_PEERTABLEMODEL_H
+#define SAMCOIN_QT_PEERTABLEMODEL_H
 
 #include <net_processing.h> // For CNodeStateStats
 #include <net.h>
@@ -48,7 +48,6 @@ public:
     enum ColumnIndex {
         NetNodeId = 0,
         Address,
-        Direction,
         ConnectionType,
         Network,
         Ping,
@@ -85,9 +84,6 @@ private:
         /*: Title of Peers Table column which contains the
             IP/Onion/I2P address of the connected peer. */
         tr("Address"),
-        /*: Title of Peers Table column which indicates the direction
-            the peer connection was initiated from. */
-        tr("Direction"),
         /*: Title of Peers Table column which describes the type of
             peer connection. The "type" describes why the connection exists. */
         tr("Type"),
@@ -109,4 +105,4 @@ private:
     QTimer *timer;
 };
 
-#endif // BITCOIN_QT_PEERTABLEMODEL_H
+#endif // SAMCOIN_QT_PEERTABLEMODEL_H

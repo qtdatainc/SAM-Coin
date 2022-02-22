@@ -1,12 +1,12 @@
-// Copyright (c) 2019-2021 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UTIL_CHECK_H
-#define BITCOIN_UTIL_CHECK_H
+#ifndef SAMCOIN_UTIL_CHECK_H
+#define SAMCOIN_UTIL_CHECK_H
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <tinyformat.h>
@@ -33,11 +33,11 @@ class NonFatalCheckError : public std::runtime_error
     do {                                                          \
         if (!(condition)) {                                       \
             throw NonFatalCheckError(                             \
-                strprintf("Internal bug detected: '%s'\n"         \
-                          "%s:%d (%s)\n"                          \
+                strprintf("%s:%d (%s)\n"                          \
+                          "Internal bug detected: '%s'\n"         \
                           "You may report this issue here: %s\n", \
-                    (#condition),                                 \
                     __FILE__, __LINE__, __func__,                 \
+                    (#condition),                                 \
                     PACKAGE_BUGREPORT));                          \
         }                                                         \
     } while (false)
@@ -72,4 +72,4 @@ T get_pure_r_value(T&& val)
 #define Assume(val) ([&]() -> decltype(get_pure_r_value(val)) { auto&& check = (val); return std::forward<decltype(get_pure_r_value(val))>(check); }())
 #endif
 
-#endif // BITCOIN_UTIL_CHECK_H
+#endif // SAMCOIN_UTIL_CHECK_H

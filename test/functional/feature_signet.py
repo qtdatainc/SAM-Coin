@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-# Copyright (c) 2019-2021 The Bitcoin Core developers
+# Copyright (c) 2019-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test basic signet functionality"""
 
 from decimal import Decimal
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import assert_equal
 
 signet_blocks = [
@@ -23,7 +23,7 @@ signet_blocks = [
 ]
 
 
-class SignetBasicTest(BitcoinTestFramework):
+class SignetBasicTest(SamcoinTestFramework):
     def set_test_params(self):
         self.chain = "signet"
         self.num_nodes = 6
@@ -51,7 +51,7 @@ class SignetBasicTest(BitcoinTestFramework):
         assert_equal(mining_info['networkhashps'], Decimal('0'))
         assert_equal(mining_info['pooledtx'], 0)
 
-        self.generate(self.nodes[0], 1, sync_fun=self.no_op)
+        self.nodes[0].generate(1)
 
         self.log.info("pregenerated signet blocks check")
 

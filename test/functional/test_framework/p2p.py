@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # Copyright (c) 2010 ArtForz -- public domain half-a-node
 # Copyright (c) 2012 Jeff Garzik
-# Copyright (c) 2010-2021 The Bitcoin Core developers
+# Copyright (c) 2010-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test objects for interacting with a bitcoind node over the p2p protocol.
+"""Test objects for interacting with a samcoind node over the p2p protocol.
 
-The P2PInterface objects interact with the bitcoind nodes under test using the
+The P2PInterface objects interact with the samcoind nodes under test using the
 node's p2p interface. They can be used to send messages to the node, and
 callbacks can be registered that execute when messages are received from the
 node. Messages are sent to/received from the node on an asyncio event loop.
@@ -89,8 +89,6 @@ P2P_SERVICES = NODE_NETWORK | NODE_WITNESS
 P2P_SUBVERSION = "/python-p2p-tester:0.0.3/"
 # Value for relay that this test framework sends in its `version` message
 P2P_VERSION_RELAY = 1
-# Delay after receiving a tx inv before requesting transactions from non-preferred peers, in seconds
-NONPREF_PEER_TX_DELAY = 2
 
 MESSAGEMAP = {
     b"addr": msg_addr,
@@ -170,14 +168,14 @@ class P2PConnection(asyncio.Protocol):
         self.peer_connect_helper(dstaddr, dstport, net, timeout_factor)
 
         loop = NetworkThread.network_event_loop
-        logger.debug('Connecting to Bitcoin Node: %s:%d' % (self.dstaddr, self.dstport))
+        logger.debug('Connecting to Samcoin Node: %s:%d' % (self.dstaddr, self.dstport))
         coroutine = loop.create_connection(lambda: self, host=self.dstaddr, port=self.dstport)
         return lambda: loop.call_soon_threadsafe(loop.create_task, coroutine)
 
     def peer_accept_connection(self, connect_id, connect_cb=lambda: None, *, net, timeout_factor):
         self.peer_connect_helper('0', 0, net, timeout_factor)
 
-        logger.debug('Listening for Bitcoin Node with id: {}'.format(connect_id))
+        logger.debug('Listening for Samcoin Node with id: {}'.format(connect_id))
         return lambda: NetworkThread.listen(self, connect_cb, idx=connect_id)
 
     def peer_disconnect(self):
@@ -306,7 +304,7 @@ class P2PConnection(asyncio.Protocol):
 
 
 class P2PInterface(P2PConnection):
-    """A high-level P2P interface class for communicating with a Bitcoin node.
+    """A high-level P2P interface class for communicating with a Samcoin node.
 
     This class provides high-level callbacks for processing P2P message
     payloads, as well as convenience methods for interacting with the
@@ -358,7 +356,7 @@ class P2PInterface(P2PConnection):
 
         return create_conn
 
-    def peer_accept_connection(self, *args, services=P2P_SERVICES, **kwargs):
+    def peer_accept_connection(self, *args, services=NODE_NETWORK | NODE_WITNESS, **kwargs):
         create_conn = super().peer_accept_connection(*args, **kwargs)
         self.peer_connect_send_version(services)
 
@@ -440,7 +438,6 @@ class P2PInterface(P2PConnection):
             self.send_message(msg_sendaddrv2())
         self.send_message(msg_verack())
         self.nServices = message.nServices
-        self.send_message(msg_getaddr())
 
     # Connection helper methods
 
@@ -579,8 +576,6 @@ class NetworkThread(threading.Thread):
 
         NetworkThread.listeners = {}
         NetworkThread.protos = {}
-        if sys.platform == 'win32':
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         NetworkThread.network_event_loop = asyncio.new_event_loop()
 
     def run(self):

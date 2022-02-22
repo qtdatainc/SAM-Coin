@@ -1,8 +1,8 @@
-// Copyright (c) 2016-2021 The Bitcoin Core developers
+// Copyright (c) 2016-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <consensus/amount.h>
+#include <amount.h>
 #include <policy/feerate.h>
 
 #include <limits>
@@ -48,13 +48,13 @@ BOOST_AUTO_TEST_CASE(GetFeeTest)
     BOOST_CHECK_EQUAL(feeRate.GetFee(9e3), CAmount(-9e3));
 
     feeRate = CFeeRate(123);
-    // Rounds up the result, if not integer
+    // Truncates the result, if not integer
     BOOST_CHECK_EQUAL(feeRate.GetFee(0), CAmount(0));
     BOOST_CHECK_EQUAL(feeRate.GetFee(8), CAmount(1)); // Special case: returns 1 instead of 0
-    BOOST_CHECK_EQUAL(feeRate.GetFee(9), CAmount(2));
-    BOOST_CHECK_EQUAL(feeRate.GetFee(121), CAmount(15));
-    BOOST_CHECK_EQUAL(feeRate.GetFee(122), CAmount(16));
-    BOOST_CHECK_EQUAL(feeRate.GetFee(999), CAmount(123));
+    BOOST_CHECK_EQUAL(feeRate.GetFee(9), CAmount(1));
+    BOOST_CHECK_EQUAL(feeRate.GetFee(121), CAmount(14));
+    BOOST_CHECK_EQUAL(feeRate.GetFee(122), CAmount(15));
+    BOOST_CHECK_EQUAL(feeRate.GetFee(999), CAmount(122));
     BOOST_CHECK_EQUAL(feeRate.GetFee(1e3), CAmount(123));
     BOOST_CHECK_EQUAL(feeRate.GetFee(9e3), CAmount(1107));
 
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(BinaryOperatorTest)
     BOOST_CHECK(a <= a);
     BOOST_CHECK(b >= a);
     BOOST_CHECK(b >= b);
-    // a should be 0.00000002 BTC/kvB now
+    // a should be 0.00000002 SAM/kvB now
     a += a;
     BOOST_CHECK(a == b);
 }
@@ -108,8 +108,8 @@ BOOST_AUTO_TEST_CASE(ToStringTest)
 {
     CFeeRate feeRate;
     feeRate = CFeeRate(1);
-    BOOST_CHECK_EQUAL(feeRate.ToString(), "0.00000001 BTC/kvB");
-    BOOST_CHECK_EQUAL(feeRate.ToString(FeeEstimateMode::BTC_KVB), "0.00000001 BTC/kvB");
+    BOOST_CHECK_EQUAL(feeRate.ToString(), "0.00000001 SAM/kvB");
+    BOOST_CHECK_EQUAL(feeRate.ToString(FeeEstimateMode::SAM_KVB), "0.00000001 SAM/kvB");
     BOOST_CHECK_EQUAL(feeRate.ToString(FeeEstimateMode::SAT_VB), "0.001 sat/vB");
 }
 

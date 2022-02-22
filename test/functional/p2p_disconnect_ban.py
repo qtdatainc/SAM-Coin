@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2020 The Bitcoin Core developers
+# Copyright (c) 2014-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test node disconnect and ban behavior"""
 import time
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
 
-class DisconnectBanTest(BitcoinTestFramework):
+class DisconnectBanTest(SamcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.supports_cli = False
@@ -57,11 +57,11 @@ class DisconnectBanTest(BitcoinTestFramework):
         assert_equal(len(self.nodes[1].listbanned()), 0)
 
         self.log.info("setban: test persistence across node restart")
+        self.nodes[1].setban("127.0.0.0/32", "add")
+        self.nodes[1].setban("127.0.0.0/24", "add")
         # Set the mocktime so we can control when bans expire
         old_time = int(time.time())
         self.nodes[1].setmocktime(old_time)
-        self.nodes[1].setban("127.0.0.0/32", "add")
-        self.nodes[1].setban("127.0.0.0/24", "add")
         self.nodes[1].setban("192.168.0.1", "add", 1)  # ban for 1 seconds
         self.nodes[1].setban("2001:4d48:ac57:400:cacf:e9ff:fe1d:9c63/19", "add", 1000)  # ban for 1000 seconds
         listBeforeShutdown = self.nodes[1].listbanned()
@@ -69,15 +69,6 @@ class DisconnectBanTest(BitcoinTestFramework):
         # Move time forward by 3 seconds so the third ban has expired
         self.nodes[1].setmocktime(old_time + 3)
         assert_equal(len(self.nodes[1].listbanned()), 3)
-
-        self.log.info("Test ban_duration and time_remaining")
-        for ban in self.nodes[1].listbanned():
-            if ban["address"] in ["127.0.0.0/32", "127.0.0.0/24"]:
-                assert_equal(ban["ban_duration"], 86400)
-                assert_equal(ban["time_remaining"], 86397)
-            elif ban["address"] == "2001:4d48:ac57:400:cacf:e9ff:fe1d:9c63/19":
-                assert_equal(ban["ban_duration"], 1000)
-                assert_equal(ban["time_remaining"], 997)
 
         self.restart_node(1)
 

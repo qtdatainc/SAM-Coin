@@ -1,25 +1,15 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/walletframe.h>
 
-#include <fs.h>
-#include <node/ui_interface.h>
-#include <psbt.h>
-#include <qt/guiutil.h>
 #include <qt/overviewpage.h>
-#include <qt/psbtoperationsdialog.h>
 #include <qt/walletmodel.h>
 #include <qt/walletview.h>
-#include <util/system.h>
 
 #include <cassert>
-#include <fstream>
-#include <string>
 
-#include <QApplication>
-#include <QClipboard>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -68,13 +58,14 @@ void WalletFrame::setClientModel(ClientModel *_clientModel)
     }
 }
 
-bool WalletFrame::addView(WalletView* walletView)
+bool WalletFrame::addWallet(WalletModel* walletModel, WalletView* walletView)
 {
-    if (!clientModel) return false;
+    if (!clientModel || !walletModel) return false;
 
-    if (mapWalletViews.count(walletView->getWalletModel()) > 0) return false;
+    if (mapWalletViews.count(walletModel) > 0) return false;
 
     walletView->setClientModel(clientModel);
+    walletView->setWalletModel(walletModel);
     walletView->showOutOfSyncWarning(bOutOfSync);
 
     WalletView* current_wallet_view = currentWalletView();
@@ -85,7 +76,7 @@ bool WalletFrame::addView(WalletView* walletView)
     }
 
     walletStack->addWidget(walletView);
-    mapWalletViews[walletView->getWalletModel()] = walletView;
+    mapWalletViews[walletModel] = walletView;
 
     return true;
 }
@@ -112,8 +103,7 @@ void WalletFrame::setCurrentWallet(WalletModel* wallet_model)
     walletView->updateGeometry();
 
     walletStack->setCurrentWidget(walletView);
-
-    Q_EMIT currentWalletSet();
+    walletView->updateEncryptionStatus();
 }
 
 void WalletFrame::removeWallet(WalletModel* wallet_model)
@@ -194,39 +184,10 @@ void WalletFrame::gotoVerifyMessageTab(QString addr)
 
 void WalletFrame::gotoLoadPSBT(bool from_clipboard)
 {
-    std::string data;
-
-    if (from_clipboard) {
-        std::string raw = QApplication::clipboard()->text().toStdString();
-        bool invalid;
-        data = DecodeBase64(raw, &invalid);
-        if (invalid) {
-            Q_EMIT message(tr("Error"), tr("Unable to decode PSBT from clipboard (invalid base64)"), CClientUIInterface::MSG_ERROR);
-            return;
-        }
-    } else {
-        QString filename = GUIUtil::getOpenFileName(this,
-            tr("Load Transaction Data"), QString(),
-            tr("Partially Signed Transaction (*.psbt)"), nullptr);
-        if (filename.isEmpty()) return;
-        if (GetFileSize(filename.toLocal8Bit().data(), MAX_FILE_SIZE_PSBT) == MAX_FILE_SIZE_PSBT) {
-            Q_EMIT message(tr("Error"), tr("PSBT file must be smaller than 100 MiB"), CClientUIInterface::MSG_ERROR);
-            return;
-        }
-        std::ifstream in{filename.toLocal8Bit().data(), std::ios::binary};
-        data = std::string(std::istreambuf_iterator<char>{in}, {});
+    WalletView *walletView = currentWalletView();
+    if (walletView) {
+        walletView->gotoLoadPSBT(from_clipboard);
     }
-
-    std::string error;
-    PartiallySignedTransaction psbtx;
-    if (!DecodeRawPSBT(psbtx, data, error)) {
-        Q_EMIT message(tr("Error"), tr("Unable to decode PSBT") + "\n" + QString::fromStdString(error), CClientUIInterface::MSG_ERROR);
-        return;
-    }
-
-    auto dlg = new PSBTOperationsDialog(this, currentWalletModel(), clientModel);
-    dlg->openWithPSBT(psbtx);
-    GUIUtil::ShowModalDialogAsynchronously(dlg);
 }
 
 void WalletFrame::encryptWallet()

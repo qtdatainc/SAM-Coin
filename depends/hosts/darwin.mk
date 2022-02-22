@@ -1,7 +1,7 @@
-OSX_MIN_VERSION=10.15
-OSX_SDK_VERSION=11.0
-XCODE_VERSION=12.2
-XCODE_BUILD_ID=12B45b
+OSX_MIN_VERSION=10.14
+OSX_SDK_VERSION=10.15.6
+XCODE_VERSION=12.1
+XCODE_BUILD_ID=12A7403
 LD64_VERSION=609
 
 OSX_SDK=$(SDK_PATH)/Xcode-$(XCODE_VERSION)-$(XCODE_BUILD_ID)-extracted-SDK-with-libcxx-headers
@@ -53,7 +53,7 @@ $(foreach TOOL,$(cctools_TOOLS),$(eval darwin_$(TOOL) = $$(build_prefix)/bin/$$(
 #     -mlinker-version
 #
 #         Ensures that modern linker features are enabled. See here for more
-#         details: https://github.com/bitcoin/bitcoin/pull/19407.
+#         details: https://github.com/samcoin/samcoin/pull/19407.
 #
 #     -B$(build_prefix)/bin
 #
@@ -74,7 +74,7 @@ $(foreach TOOL,$(cctools_TOOLS),$(eval darwin_$(TOOL) = $$(build_prefix)/bin/$$(
 #         system include search paths and its ordering, rather than rely on
 #         clang's autodetection routine. This routine has been shown to:
 #             1. Fail to pickup libc++ headers in $SYSROOT/usr/include/c++/v1
-#                when clang was built manually (see: https://github.com/bitcoin/bitcoin/pull/17919#issuecomment-656785034)
+#                when clang was built manually (see: https://github.com/samcoin/samcoin/pull/17919#issuecomment-656785034)
 #             2. Fail to pickup C headers in $SYSROOT/usr/include when
 #                C_INCLUDE_DIRS was specified at configure time (see: https://gist.github.com/dongcarl/5cdc6990b7599e8a5bf6d2a9c70e82f9)
 #

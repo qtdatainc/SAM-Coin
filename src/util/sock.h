@@ -1,16 +1,15 @@
-// Copyright (c) 2020-2021 The Bitcoin Core developers
+// Copyright (c) 2020-2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UTIL_SOCK_H
-#define BITCOIN_UTIL_SOCK_H
+#ifndef SAMCOIN_UTIL_SOCK_H
+#define SAMCOIN_UTIL_SOCK_H
 
 #include <compat.h>
 #include <threadinterrupt.h>
 #include <util/time.h>
 
 #include <chrono>
-#include <memory>
 #include <string>
 
 /**
@@ -98,14 +97,6 @@ public:
     [[nodiscard]] virtual int Connect(const sockaddr* addr, socklen_t addr_len) const;
 
     /**
-     * accept(2) wrapper. Equivalent to `std::make_unique<Sock>(accept(this->Get(), addr, addr_len))`.
-     * Code that uses this wrapper can be unit tested if this method is overridden by a mock Sock
-     * implementation.
-     * The returned unique_ptr is empty if `accept()` failed in which case errno will be set.
-     */
-    [[nodiscard]] virtual std::unique_ptr<Sock> Accept(sockaddr* addr, socklen_t* addr_len) const;
-
-    /**
      * getsockopt(2) wrapper. Equivalent to
      * `getsockopt(this->Get(), level, opt_name, opt_val, opt_len)`. Code that uses this
      * wrapper can be unit tested if this method is overridden by a mock Sock implementation.
@@ -191,4 +182,4 @@ std::string NetworkErrorString(int err);
 /** Close socket and set hSocket to INVALID_SOCKET */
 bool CloseSocket(SOCKET& hSocket);
 
-#endif // BITCOIN_UTIL_SOCK_H
+#endif // SAMCOIN_UTIL_SOCK_H

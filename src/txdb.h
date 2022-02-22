@@ -1,27 +1,24 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_TXDB_H
-#define BITCOIN_TXDB_H
+#ifndef SAMCOIN_TXDB_H
+#define SAMCOIN_TXDB_H
 
 #include <coins.h>
 #include <dbwrapper.h>
+#include <chain.h>
+#include <primitives/block.h>
 
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-class CBlockFileInfo;
 class CBlockIndex;
+class CCoinsViewDBCursor;
 class uint256;
-namespace Consensus {
-struct Params;
-};
-struct bilingual_str;
 
 //! -dbcache default (MiB)
 static const int64_t nDefaultDbCache = 450;
@@ -35,7 +32,7 @@ static const int64_t nMinDbCache = 4;
 static const int64_t nMaxBlockDBCache = 2;
 //! Max memory allocated to block tree DB specific cache, if -txindex (MiB)
 // Unlike for the UTXO database, for the txindex scenario the leveldb cache make
-// a meaningful difference: https://github.com/bitcoin/bitcoin/pull/8273#issuecomment-229601991
+// a meaningful difference: https://github.com/samcoin/samcoin/pull/8273#issuecomment-229601991
 static const int64_t nMaxTxIndexCache = 1024;
 //! Max memory allocated to all block filter index caches combined in MiB.
 static const int64_t max_filter_index_cache = 1024;
@@ -86,10 +83,7 @@ public:
     void ReadReindexing(bool &fReindexing);
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
-    bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex)
-        EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex);
 };
 
-std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
-
-#endif // BITCOIN_TXDB_H
+#endif // SAMCOIN_TXDB_H

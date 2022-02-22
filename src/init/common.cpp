@@ -1,9 +1,9 @@
-// Copyright (c) 2021 The Bitcoin Core developers
+// Copyright (c) 2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/samcoin-config.h>
 #endif
 
 #include <clientversion.h>
@@ -64,7 +64,7 @@ void AddLoggingArgs(ArgsManager& argsman)
     argsman.AddArg("-debug=<category>", "Output debugging information (default: -nodebug, supplying <category> is optional). "
         "If <category> is not supplied or if <category> = 1, output all debugging information. <category> can be: " + LogInstance().LogCategoriesString() + ". This option can be specified multiple times to output multiple categories.",
         ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
-    argsman.AddArg("-debugexclude=<category>", "Exclude debugging information for a category. Can be used in conjunction with -debug=1 to output debug logs for all categories except the specified category. This option can be specified multiple times to exclude multiple categories.", ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
+    argsman.AddArg("-debugexclude=<category>", strprintf("Exclude debugging information for a category. Can be used in conjunction with -debug=1 to output debug logs for all categories except the specified category. This option can be specified multiple times to exclude multiple categories."), ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
     argsman.AddArg("-logips", strprintf("Include IP addresses in debug output (default: %u)", DEFAULT_LOGIPS), ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
     argsman.AddArg("-logtimestamps", strprintf("Prepend debug output with timestamp (default: %u)", DEFAULT_LOGTIMESTAMPS), ArgsManager::ALLOW_ANY, OptionsCategory::DEBUG_TEST);
 #ifdef HAVE_THREAD_LOCAL
@@ -81,7 +81,7 @@ void AddLoggingArgs(ArgsManager& argsman)
 void SetLoggingOptions(const ArgsManager& args)
 {
     LogInstance().m_print_to_file = !args.IsArgNegated("-debuglogfile");
-    LogInstance().m_file_path = AbsPathForConfigVal(fs::PathFromString(args.GetArg("-debuglogfile", DEFAULT_DEBUGLOGFILE)));
+    LogInstance().m_file_path = AbsPathForConfigVal(args.GetArg("-debuglogfile", DEFAULT_DEBUGLOGFILE));
     LogInstance().m_print_to_console = args.GetBoolArg("-printtoconsole", !args.GetBoolArg("-daemon", false));
     LogInstance().m_log_timestamps = args.GetBoolArg("-logtimestamps", DEFAULT_LOGTIMESTAMPS);
     LogInstance().m_log_time_micros = args.GetBoolArg("-logtimemicros", DEFAULT_LOGTIMEMICROS);
@@ -128,24 +128,24 @@ bool StartLogging(const ArgsManager& args)
     }
     if (!LogInstance().StartLogging()) {
             return InitError(strprintf(Untranslated("Could not open debug log file %s"),
-                fs::PathToString(LogInstance().m_file_path)));
+                LogInstance().m_file_path.string()));
     }
 
     if (!LogInstance().m_log_timestamps)
         LogPrintf("Startup time: %s\n", FormatISO8601DateTime(GetTime()));
-    LogPrintf("Default data directory %s\n", fs::PathToString(GetDefaultDataDir()));
-    LogPrintf("Using data directory %s\n", fs::PathToString(gArgs.GetDataDirNet()));
+    LogPrintf("Default data directory %s\n", GetDefaultDataDir().string());
+    LogPrintf("Using data directory %s\n", gArgs.GetDataDirNet().string());
 
     // Only log conf file usage message if conf file actually exists.
-    fs::path config_file_path = GetConfigFile(args.GetArg("-conf", BITCOIN_CONF_FILENAME));
+    fs::path config_file_path = GetConfigFile(args.GetArg("-conf", SAMCOIN_CONF_FILENAME));
     if (fs::exists(config_file_path)) {
-        LogPrintf("Config file: %s\n", fs::PathToString(config_file_path));
+        LogPrintf("Config file: %s\n", config_file_path.string());
     } else if (args.IsArgSet("-conf")) {
         // Warn if no conf file exists at path provided by user
-        InitWarning(strprintf(_("The specified config file %s does not exist"), fs::PathToString(config_file_path)));
+        InitWarning(strprintf(_("The specified config file %s does not exist"), config_file_path.string()));
     } else {
         // Not categorizing as "Warning" because it's the default behavior
-        LogPrintf("Config file: %s (not found, skipping)\n", fs::PathToString(config_file_path));
+        LogPrintf("Config file: %s (not found, skipping)\n", config_file_path.string());
     }
 
     // Log the config arguments to debug.log

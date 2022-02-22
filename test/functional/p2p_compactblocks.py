@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2016-2021 The Bitcoin Core developers
+# Copyright (c) 2016-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test compact blocks (BIP 152).
@@ -60,15 +60,13 @@ from test_framework.script import (
     OP_DROP,
     OP_TRUE,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import (
     assert_equal,
     softfork_active,
 )
-from test_framework.wallet import MiniWallet
 
-
-# TestP2PConn: A peer we use to send messages to bitcoind, and store responses.
+# TestP2PConn: A peer we use to send messages to samcoind, and store responses.
 class TestP2PConn(P2PInterface):
     def __init__(self, cmpct_version):
         super().__init__()
@@ -143,7 +141,7 @@ class TestP2PConn(P2PInterface):
         self.send_message(message)
         self.wait_for_disconnect(timeout)
 
-class CompactBlocksTest(BitcoinTestFramework):
+class CompactBlocksTest(SamcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
@@ -151,6 +149,9 @@ class CompactBlocksTest(BitcoinTestFramework):
             "-acceptnonstdtxn=1",
         ]]
         self.utxos = []
+
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     def build_block_on_tip(self, node, segwit=False):
         block = create_block(tmpl=node.getblocktemplate(NORMAL_GBT_REQUEST_PARAMS))
@@ -164,7 +165,7 @@ class CompactBlocksTest(BitcoinTestFramework):
         block = self.build_block_on_tip(self.nodes[0])
         self.segwit_node.send_and_ping(msg_no_witness_block(block))
         assert int(self.nodes[0].getbestblockhash(), 16) == block.sha256
-        self.generate(self.wallet, COINBASE_MATURITY)
+        self.nodes[0].generatetoaddress(COINBASE_MATURITY, self.nodes[0].getnewaddress(address_type="bech32"))
 
         total_value = block.vtx[0].vout[0].nValue
         out_value = total_value // 10
@@ -211,7 +212,7 @@ class CompactBlocksTest(BitcoinTestFramework):
 
         def check_announcement_of_new_block(node, peer, predicate):
             peer.clear_block_announcement()
-            block_hash = int(self.generate(node, 1)[0], 16)
+            block_hash = int(node.generate(1)[0], 16)
             peer.wait_for_block_announcement(block_hash, timeout=30)
             assert peer.block_announced
 
@@ -273,9 +274,9 @@ class CompactBlocksTest(BitcoinTestFramework):
             old_node.request_headers_and_sync(locator=[tip])
             check_announcement_of_new_block(node, old_node, lambda p: "cmpctblock" in p.last_message)
 
-    # This test actually causes bitcoind to (reasonably!) disconnect us, so do this last.
+    # This test actually causes samcoind to (reasonably!) disconnect us, so do this last.
     def test_invalid_cmpctblock_message(self):
-        self.generate(self.nodes[0], COINBASE_MATURITY + 1)
+        self.nodes[0].generate(COINBASE_MATURITY + 1)
         block = self.build_block_on_tip(self.nodes[0])
 
         cmpct_block = P2PHeaderAndShortIDs()
@@ -288,17 +289,19 @@ class CompactBlocksTest(BitcoinTestFramework):
         assert_equal(int(self.nodes[0].getbestblockhash(), 16), block.hashPrevBlock)
 
     # Compare the generated shortids to what we expect based on BIP 152, given
-    # bitcoind's choice of nonce.
+    # samcoind's choice of nonce.
     def test_compactblock_construction(self, test_node, use_witness_address=True):
         version = test_node.cmpct_version
         node = self.nodes[0]
         # Generate a bunch of transactions.
-        self.generate(node, COINBASE_MATURITY + 1)
+        node.generate(COINBASE_MATURITY + 1)
         num_transactions = 25
+        address = node.getnewaddress()
 
         segwit_tx_generated = False
         for _ in range(num_transactions):
-            hex_tx = self.wallet.send_self_transfer(from_node=self.nodes[0])['hex']
+            txid = node.sendtoaddress(address, 0.1)
+            hex_tx = node.gettransaction(txid)["hex"]
             tx = tx_from_hex(hex_tx)
             if not tx.wit.is_null():
                 segwit_tx_generated = True
@@ -315,7 +318,7 @@ class CompactBlocksTest(BitcoinTestFramework):
 
         # Now mine a block, and look at the resulting compact block.
         test_node.clear_block_announcement()
-        block_hash = int(self.generate(node, 1)[0], 16)
+        block_hash = int(node.generate(1)[0], 16)
 
         # Store the raw block in our internal format.
         block = from_hex(CBlock(), node.getblock("%064x" % block_hash, False))
@@ -392,7 +395,7 @@ class CompactBlocksTest(BitcoinTestFramework):
                 header_and_shortids.shortids.pop(0)
             index += 1
 
-    # Test that bitcoind requests compact blocks when we announce new blocks
+    # Test that samcoind requests compact blocks when we announce new blocks
     # via header or inv, and that responding to getblocktxn causes the block
     # to be successfully reconstructed.
     # Post-segwit: upgraded nodes would only make this request of cb-version-2,
@@ -573,7 +576,7 @@ class CompactBlocksTest(BitcoinTestFramework):
         assert_equal(absolute_indexes, [6, 7, 8, 9, 10])
 
         # Now give an incorrect response.
-        # Note that it's possible for bitcoind to be smart enough to know we're
+        # Note that it's possible for samcoind to be smart enough to know we're
         # lying, since it could check to see if the shortid matches what we're
         # sending, and eg disconnect us for misbehavior.  If that behavior
         # change was made, we could just modify this test by having a
@@ -604,7 +607,7 @@ class CompactBlocksTest(BitcoinTestFramework):
     def test_getblocktxn_handler(self, test_node):
         version = test_node.cmpct_version
         node = self.nodes[0]
-        # bitcoind will not send blocktxn responses for blocks whose height is
+        # samcoind will not send blocktxn responses for blocks whose height is
         # more than 10 blocks deep.
         MAX_GETBLOCKTXN_DEPTH = 10
         chain_height = node.getblockcount()
@@ -657,7 +660,7 @@ class CompactBlocksTest(BitcoinTestFramework):
         new_blocks = []
         for _ in range(MAX_CMPCTBLOCK_DEPTH + 1):
             test_node.clear_block_announcement()
-            new_blocks.append(self.generate(node, 1)[0])
+            new_blocks.append(node.generate(1)[0])
             test_node.wait_until(test_node.received_block_announcement, timeout=30)
 
         test_node.clear_block_announcement()
@@ -665,7 +668,7 @@ class CompactBlocksTest(BitcoinTestFramework):
         test_node.wait_until(lambda: "cmpctblock" in test_node.last_message, timeout=30)
 
         test_node.clear_block_announcement()
-        self.generate(node, 1)
+        node.generate(1)
         test_node.wait_until(test_node.received_block_announcement, timeout=30)
         test_node.clear_block_announcement()
         with p2p_lock:
@@ -840,7 +843,8 @@ class CompactBlocksTest(BitcoinTestFramework):
         assert_highbandwidth_states(self.nodes[0], hb_to=True, hb_from=False)
 
     def run_test(self):
-        self.wallet = MiniWallet(self.nodes[0])
+        # Get the nodes out of IBD
+        self.nodes[0].generate(1)
 
         # Setup the p2p connections
         self.segwit_node = self.nodes[0].add_p2p_connection(TestP2PConn(cmpct_version=2))

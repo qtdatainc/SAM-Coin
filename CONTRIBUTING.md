@@ -1,12 +1,12 @@
-Contributing to Bitcoin Core
+Contributing to Samcoin Core
 ============================
 
-The Bitcoin Core project operates an open contributor model where anyone is
+The Samcoin Core project operates an open contributor model where anyone is
 welcome to contribute towards development in the form of peer review, testing
 and patches. This document explains the practical process and guidelines for
 contributing.
 
-First, in terms of structure, there is no particular concept of "Bitcoin Core
+First, in terms of structure, there is no particular concept of "Samcoin Core
 developers" in the sense of privileged people. Open source often naturally
 revolves around a meritocracy where contributors earn trust from the developer
 community over time. Nevertheless, some hierarchy is necessary for practical
@@ -25,20 +25,20 @@ as a new contributor. It also will teach you much more about the code and
 process than opening pull requests. Please refer to the [peer review](#peer-review)
 section below.
 
-Before you start contributing, familiarize yourself with the Bitcoin Core build
+Before you start contributing, familiarize yourself with the Samcoin Core build
 system and tests. Refer to the documentation in the repository on how to build
-Bitcoin Core and how to run the unit tests, functional tests, and fuzz tests.
+Samcoin Core and how to run the unit tests, functional tests, and fuzz tests.
 
 There are many open issues of varying difficulty waiting to be fixed.
 If you're looking for somewhere to start contributing, check out the
-[good first issue](https://github.com/bitcoin/bitcoin/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+[good first issue](https://github.com/samcoin/samcoin/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
 list or changes that are
-[up for grabs](https://github.com/bitcoin/bitcoin/issues?utf8=%E2%9C%93&q=label%3A%22Up+for+grabs%22).
+[up for grabs](https://github.com/samcoin/samcoin/issues?utf8=%E2%9C%93&q=label%3A%22Up+for+grabs%22).
 Some of them might no longer be applicable. So if you are interested, but
 unsure, you might want to leave a comment on the issue first.
 
 You may also participate in the weekly
-[Bitcoin Core PR Review Club](https://bitcoincore.reviews/) meeting.
+[Samcoin Core PR Review Club](https://samcoincore.reviews/) meeting.
 
 ### Good First Issue Label
 
@@ -56,18 +56,18 @@ and is also an effective way to request assistance if and when you need it.
 Communication Channels
 ----------------------
 
-Most communication about Bitcoin Core development happens on IRC, in the
-`#bitcoin-core-dev` channel on Libera Chat. The easiest way to participate on IRC is
-with the web client, [web.libera.chat](https://web.libera.chat/#bitcoin-core-dev). Chat
+Most communication about Samcoin Core development happens on IRC, in the
+`#samcoin-core-dev` channel on Libera Chat. The easiest way to participate on IRC is
+with the web client, [web.libera.chat](https://web.libera.chat/#samcoin-core-dev). Chat
 history logs can be found
-on [https://www.erisian.com.au/bitcoin-core-dev/](https://www.erisian.com.au/bitcoin-core-dev/)
-and [https://gnusha.org/bitcoin-core-dev/](https://gnusha.org/bitcoin-core-dev/).
+on [http://www.erisian.com.au/samcoin-core-dev/](http://www.erisian.com.au/samcoin-core-dev/)
+and [http://gnusha.org/samcoin-core-dev/](http://gnusha.org/samcoin-core-dev/).
 
 Discussion about codebase improvements happens in GitHub issues and pull
 requests.
 
 The developer
-[mailing list](https://lists.linuxfoundation.org/mailman/listinfo/bitcoin-dev)
+[mailing list](https://lists.linuxfoundation.org/mailman/listinfo/samcoin-dev)
 should be used to discuss complicated or controversial consensus or P2P protocol changes before working on
 a patch set.
 
@@ -81,12 +81,12 @@ facilitates social contribution, easy testing and peer review.
 
 To contribute a patch, the workflow is as follows:
 
-  1. Fork repository ([only for the first time](https://docs.github.com/en/get-started/quickstart/fork-a-repo))
+  1. Fork repository ([only for the first time](https://help.github.com/en/articles/fork-a-repo))
   1. Create topic branch
   1. Commit patches
 
-For GUI-related issues or pull requests, the https://github.com/bitcoin-core/gui repository should be used.
-For all other issues and pull requests, the https://github.com/bitcoin/bitcoin node repository should be used.
+For GUI-related issues or pull requests, the https://github.com/samcoin-core/gui repository should be used.
+For all other issues and pull requests, the https://github.com/samcoin/samcoin node repository should be used.
 
 The master branch for all monotree repositories is identical.
 
@@ -119,7 +119,7 @@ own without warnings, errors, regressions, or test failures.
 
 Commit messages should be verbose by default consisting of a short subject line
 (50 chars max), a blank line and detailed explanatory text as separate
-paragraph(s), unless the title alone is self-explanatory (like "Correct typo
+paragraph(s), unless the title alone is self-explanatory (like "Corrected typo
 in init.cpp") in which case a single title line is sufficient. Commit messages should be
 helpful to people reading your code in the future, so explain the reasoning for
 your decisions. Further explanation [here](https://chris.beams.io/posts/git-commit/).
@@ -143,7 +143,7 @@ the pull request affects. Valid areas as:
 
   - `consensus` for changes to consensus critical code
   - `doc` for changes to the documentation
-  - `qt` or `gui` for changes to bitcoin-qt
+  - `qt` or `gui` for changes to samcoin-qt
   - `log` for changes to log messages
   - `mining` for changes to the mining code
   - `net` or `p2p` for changes to the peer-to-peer network code
@@ -170,19 +170,19 @@ mailing list discussions).
 The description for a new pull request should not contain any `@` mentions. The
 PR description will be included in the commit message when the PR is merged and
 any users mentioned in the description will be annoyingly notified each time a
-fork of Bitcoin Core copies the merge. Instead, make any username mentions in a
+fork of Samcoin Core copies the merge. Instead, make any username mentions in a
 subsequent comment to the PR.
 
 ### Translation changes
 
 Note that translations should not be submitted as pull requests. Please see
-[Translation Process](https://github.com/bitcoin/bitcoin/blob/master/doc/translation_process.md)
+[Translation Process](https://github.com/samcoin/samcoin/blob/master/doc/translation_process.md)
 for more information on helping with translations.
 
 ### Work in Progress Changes and Requests for Comments
 
 If a pull request is not to be considered for merging (yet), please
-prefix the title with [WIP] or use [Tasks Lists](https://docs.github.com/en/github/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#task-lists)
+prefix the title with [WIP] or use [Tasks Lists](https://help.github.com/articles/basic-writing-and-formatting-syntax/#task-lists)
 in the body of the pull request to indicate tasks are pending.
 
 ### Address Feedback
@@ -282,11 +282,11 @@ workload on reviewing.
 "Decision Making" Process
 -------------------------
 
-The following applies to code changes to the Bitcoin Core project (and related
-projects such as libsecp256k1), and is not to be confused with overall Bitcoin
+The following applies to code changes to the Samcoin Core project (and related
+projects such as libsecp256k1), and is not to be confused with overall Samcoin
 Network Protocol consensus changes.
 
-Whether a pull request is merged into Bitcoin Core rests with the project merge
+Whether a pull request is merged into Samcoin Core rests with the project merge
 maintainers and ultimately the project lead.
 
 Maintainers will take into consideration if a patch is in line with the general
@@ -305,7 +305,7 @@ In general, all pull requests must:
     demonstrating the bug and also proving the fix. This helps prevent regression.
   - Change relevant comments and documentation when behaviour of code changes.
 
-Patches that change Bitcoin consensus rules are considerably more involved than
+Patches that change Samcoin consensus rules are considerably more involved than
 normal because they affect the entire ecosystem and so must be preceded by
 extensive mailing list discussions and have a numbered BIP. While each case will
 be different, one should be prepared to expend more time and effort than for
@@ -358,7 +358,7 @@ higher in terms of discussion and peer review requirements, keeping in mind that
 mistakes could be very costly to the wider community. This includes refactoring
 of consensus-critical code.
 
-Where a patch set proposes to change the Bitcoin consensus, it must have been
+Where a patch set proposes to change the Samcoin consensus, it must have been
 discussed extensively on the mailing list and IRC, be accompanied by a widely
 discussed BIP and have a generally widely perceived technical consensus of being
 a worthwhile change based on the judgement of the maintainers.
@@ -386,7 +386,7 @@ about:
   - It may be because your code is too complex for all but a few people, and those people
     may not have realized your pull request even exists. A great way to find people who
     are qualified and care about the code you are touching is the
-    [Git Blame feature](https://docs.github.com/en/github/managing-files-in-a-repository/managing-files-on-github/tracking-changes-in-a-file). Simply
+    [Git Blame feature](https://help.github.com/articles/tracing-changes-in-a-file/). Simply
     look up who last modified the code you are changing and see if you can find
     them and give them a nudge. Don't be incessant about the nudging, though.
   - Finally, if all else fails, ask on IRC or elsewhere for someone to give your pull request
@@ -417,15 +417,15 @@ Rebased-From: <commit hash of the original commit>
 ```
 
 Have a look at [an example backport PR](
-https://github.com/bitcoin/bitcoin/pull/16189).
+https://github.com/samcoin/samcoin/pull/16189).
 
 Also see the [backport.py script](
-https://github.com/bitcoin-core/bitcoin-maintainer-tools#backport).
+https://github.com/samcoin-core/samcoin-maintainer-tools#backport).
 
 Release Policy
 --------------
 
-The project leader is the release manager for each Bitcoin Core release.
+The project leader is the release manager for each Samcoin Core release.
 
 Copyright
 ---------

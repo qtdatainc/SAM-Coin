@@ -1,20 +1,18 @@
-// Copyright (c) 2017-2020 The Bitcoin Core developers
+// Copyright (c) 2017-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_WALLET_FEEBUMPER_H
-#define BITCOIN_WALLET_FEEBUMPER_H
+#ifndef SAMCOIN_WALLET_FEEBUMPER_H
+#define SAMCOIN_WALLET_FEEBUMPER_H
 
 #include <primitives/transaction.h>
 
-class uint256;
-enum class FeeEstimateMode;
-struct bilingual_str;
-
-namespace wallet {
-class CCoinControl;
 class CWallet;
 class CWalletTx;
+class uint256;
+class CCoinControl;
+enum class FeeEstimateMode;
+struct bilingual_str;
 
 namespace feebumper {
 
@@ -56,6 +54,5 @@ Result CommitTransaction(CWallet& wallet,
     uint256& bumped_txid);
 
 } // namespace feebumper
-} // namespace wallet
 
-#endif // BITCOIN_WALLET_FEEBUMPER_H
+#endif // SAMCOIN_WALLET_FEEBUMPER_H

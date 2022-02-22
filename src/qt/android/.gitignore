@@ -1,7 +1,9 @@
 /.gradle
 /build
-/gradle
+/gradle/wrapper
 /gradlew*
 /libs
+/res/layout
+/res/values*
 /src/org/kde
 /src/org/qtproject

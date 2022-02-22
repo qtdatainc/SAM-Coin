@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2015-2021 The Bitcoin Core developers
+# Copyright (c) 2015-2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test behavior of -maxuploadtarget.
@@ -15,7 +15,7 @@ import time
 
 from test_framework.messages import CInv, MSG_BLOCK, msg_getdata
 from test_framework.p2p import P2PInterface
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import assert_equal, mine_large_block
 
 class TestP2PConn(P2PInterface):
@@ -30,14 +30,15 @@ class TestP2PConn(P2PInterface):
         message.block.calc_sha256()
         self.block_receive_map[message.block.sha256] += 1
 
-class MaxUploadTest(BitcoinTestFramework):
+class MaxUploadTest(SamcoinTestFramework):
 
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
         self.extra_args = [[
-            "-maxuploadtarget=800M",
+            "-maxuploadtarget=800",
             "-acceptnonstdtxn=1",
+            "-peertimeout=9999",  # bump because mocktime might cause a disconnect otherwise
         ]]
         self.supports_cli = False
 
@@ -55,7 +56,7 @@ class MaxUploadTest(BitcoinTestFramework):
         self.nodes[0].setmocktime(old_time)
 
         # Generate some old blocks
-        self.generate(self.nodes[0], 130)
+        self.nodes[0].generate(130)
 
         # p2p_conns[0] will only request old blocks
         # p2p_conns[1] will only request new blocks
@@ -66,7 +67,7 @@ class MaxUploadTest(BitcoinTestFramework):
             p2p_conns.append(self.nodes[0].add_p2p_connection(TestP2PConn()))
 
         # Now mine a big block
-        mine_large_block(self, self.nodes[0], self.utxo_cache)
+        mine_large_block(self.nodes[0], self.utxo_cache)
 
         # Store the hash; we'll request this later
         big_old_block = self.nodes[0].getbestblockhash()
@@ -77,7 +78,7 @@ class MaxUploadTest(BitcoinTestFramework):
         self.nodes[0].setmocktime(int(time.time()) - 2*60*60*24)
 
         # Mine one more block, so that the prior block looks old
-        mine_large_block(self, self.nodes[0], self.utxo_cache)
+        mine_large_block(self.nodes[0], self.utxo_cache)
 
         # We'll be requesting this new block too
         big_new_block = self.nodes[0].getbestblockhash()

@@ -1,11 +1,11 @@
-Bitcoin-Qt version 0.8.3 is now available from:
-  http://sourceforge.net/projects/bitcoin/files/Bitcoin/bitcoin-0.8.3/
+Samcoin-Qt version 0.8.3 is now available from:
+  http://sourceforge.net/projects/samcoin/files/Samcoin/samcoin-0.8.3/
 
 This is a maintenance release to fix a denial-of-service attack that
 can cause nodes to crash.
 
 Please report bugs using the issue tracker at github:
-  https://github.com/bitcoin/bitcoin/issues
+  https://github.com/samcoin/samcoin/issues
 
 0.8.3 Release notes
 

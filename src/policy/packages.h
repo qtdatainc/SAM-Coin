@@ -1,9 +1,9 @@
-// Copyright (c) 2021 The Bitcoin Core developers
+// Copyright (c) 2021 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_POLICY_PACKAGES_H
-#define BITCOIN_POLICY_PACKAGES_H
+#ifndef SAMCOIN_POLICY_PACKAGES_H
+#define SAMCOIN_POLICY_PACKAGES_H
 
 #include <consensus/validation.h>
 #include <policy/policy.h>
@@ -25,7 +25,6 @@ enum class PackageValidationResult {
     PCKG_RESULT_UNSET = 0,        //!< Initial value. The package has not yet been rejected.
     PCKG_POLICY,                  //!< The package itself is invalid (e.g. too many transactions).
     PCKG_TX,                      //!< At least one tx is invalid.
-    PCKG_MEMPOOL_ERROR,           //!< Mempool logic error.
 };
 
 /** A package is an ordered list of transactions. The transactions cannot conflict with (spend the
@@ -42,10 +41,4 @@ class PackageValidationState : public ValidationState<PackageValidationResult> {
  */
 bool CheckPackage(const Package& txns, PackageValidationState& state);
 
-/** Context-free check that a package is exactly one child and its parents; not all parents need to
- * be present, but the package must not contain any transactions that are not the child's parents.
- * It is expected to be sorted, which means the last transaction must be the child.
- */
-bool IsChildWithParents(const Package& package);
-
-#endif // BITCOIN_POLICY_PACKAGES_H
+#endif // SAMCOIN_POLICY_PACKAGES_H

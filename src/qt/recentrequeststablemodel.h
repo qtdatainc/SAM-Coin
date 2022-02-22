@@ -1,13 +1,11 @@
-// Copyright (c) 2011-2021 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_RECENTREQUESTSTABLEMODEL_H
-#define BITCOIN_QT_RECENTREQUESTSTABLEMODEL_H
+#ifndef SAMCOIN_QT_RECENTREQUESTSTABLEMODEL_H
+#define SAMCOIN_QT_RECENTREQUESTSTABLEMODEL_H
 
 #include <qt/sendcoinsrecipient.h>
-
-#include <string>
 
 #include <QAbstractTableModel>
 #include <QStringList>
@@ -28,9 +26,9 @@ public:
 
     SERIALIZE_METHODS(RecentRequestEntry, obj) {
         unsigned int date_timet;
-        SER_WRITE(obj, date_timet = obj.date.toSecsSinceEpoch());
+        SER_WRITE(obj, date_timet = obj.date.toTime_t());
         READWRITE(obj.nVersion, obj.id, date_timet, obj.recipient);
-        SER_READ(obj, obj.date = QDateTime::fromSecsSinceEpoch(date_timet));
+        SER_READ(obj, obj.date = QDateTime::fromTime_t(date_timet));
     }
 };
 
@@ -46,7 +44,7 @@ private:
     Qt::SortOrder order;
 };
 
-/** Model for list of recently generated payment requests / bitcoin: URIs.
+/** Model for list of recently generated payment requests / samcoin: URIs.
  * Part of wallet model.
  */
 class RecentRequestsTableModel: public QAbstractTableModel
@@ -98,4 +96,4 @@ private:
     QString getAmountTitle();
 };
 
-#endif // BITCOIN_QT_RECENTREQUESTSTABLEMODEL_H
+#endif // SAMCOIN_QT_RECENTREQUESTSTABLEMODEL_H

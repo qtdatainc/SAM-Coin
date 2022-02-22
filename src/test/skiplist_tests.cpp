@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2019 The Bitcoin Core developers
+// Copyright (c) 2014-2019 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -114,8 +114,8 @@ BOOST_AUTO_TEST_CASE(findearliestatleast_test)
         } else {
             // randomly choose something in the range [MTP, MTP*2]
             int64_t medianTimePast = vBlocksMain[i].GetMedianTimePast();
-            int r{int(InsecureRandRange(medianTimePast))};
-            vBlocksMain[i].nTime = uint32_t(r + medianTimePast);
+            int r = InsecureRandRange(medianTimePast);
+            vBlocksMain[i].nTime = r + medianTimePast;
             vBlocksMain[i].nTimeMax = std::max(vBlocksMain[i].nTime, vBlocksMain[i-1].nTimeMax);
         }
     }

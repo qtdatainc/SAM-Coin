@@ -227,11 +227,10 @@ static int secp256k1_fe_normalizes_to_zero_var(const secp256k1_fe *r) {
 }
 
 SECP256K1_INLINE static void secp256k1_fe_set_int(secp256k1_fe *r, int a) {
-    VERIFY_CHECK(0 <= a && a <= 0x7FFF);
     r->n[0] = a;
     r->n[1] = r->n[2] = r->n[3] = r->n[4] = 0;
 #ifdef VERIFY
-    r->magnitude = (a != 0);
+    r->magnitude = 1;
     r->normalized = 1;
     secp256k1_fe_verify(r);
 #endif
@@ -497,7 +496,6 @@ static SECP256K1_INLINE void secp256k1_fe_from_storage(secp256k1_fe *r, const se
 #ifdef VERIFY
     r->magnitude = 1;
     r->normalized = 1;
-    secp256k1_fe_verify(r);
 #endif
 }
 

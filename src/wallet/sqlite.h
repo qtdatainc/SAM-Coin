@@ -1,17 +1,15 @@
-// Copyright (c) 2020 The Bitcoin Core developers
+// Copyright (c) 2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_WALLET_SQLITE_H
-#define BITCOIN_WALLET_SQLITE_H
+#ifndef SAMCOIN_WALLET_SQLITE_H
+#define SAMCOIN_WALLET_SQLITE_H
 
 #include <wallet/db.h>
 
 #include <sqlite3.h>
 
 struct bilingual_str;
-
-namespace wallet {
 class SQLiteDatabase;
 
 /** RAII class that provides access to a WalletDatabase */
@@ -118,6 +116,5 @@ public:
 std::unique_ptr<SQLiteDatabase> MakeSQLiteDatabase(const fs::path& path, const DatabaseOptions& options, DatabaseStatus& status, bilingual_str& error);
 
 std::string SQLiteDatabaseVersion();
-} // namespace wallet
 
-#endif // BITCOIN_WALLET_SQLITE_H
+#endif // SAMCOIN_WALLET_SQLITE_H

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2020-2021 The Bitcoin Core developers
+# Copyright (c) 2020 The Samcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test ping message
@@ -9,7 +9,7 @@ import time
 
 from test_framework.messages import msg_pong
 from test_framework.p2p import P2PInterface
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import SamcoinTestFramework
 from test_framework.util import assert_equal
 
 PING_INTERVAL = 2 * 60
@@ -30,16 +30,11 @@ class NodeNoPong(P2PInterface):
         pass
 
 
-TIMEOUT_INTERVAL = 20 * 60
-
-
-class PingPongTest(BitcoinTestFramework):
+class PingPongTest(SamcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
-        # Set the peer connection timeout low. It does not matter for this
-        # test, as long as it is less than TIMEOUT_INTERVAL.
-        self.extra_args = [['-peertimeout=1']]
+        self.extra_args = [['-peertimeout=3']]
 
     def check_peer_info(self, *, pingtime, minping, pingwait):
         stats = self.nodes[0].getpeerinfo()[0]
@@ -115,11 +110,8 @@ class PingPongTest(BitcoinTestFramework):
         self.nodes[0].ping()
         no_pong_node.wait_until(lambda: 'ping' in no_pong_node.last_message)
         with self.nodes[0].assert_debug_log(['ping timeout: 1201.000000s']):
-            self.mock_forward(TIMEOUT_INTERVAL // 2)
-            # Check that sending a ping does not prevent the disconnect
-            no_pong_node.sync_with_ping()
-            self.mock_forward(TIMEOUT_INTERVAL // 2 + 1)
-            no_pong_node.wait_for_disconnect()
+            self.mock_forward(20 * 60 + 1)
+            time.sleep(4)  # peertimeout + 1
 
 
 if __name__ == '__main__':

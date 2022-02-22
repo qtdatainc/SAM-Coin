@@ -1,15 +1,15 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2021 The Bitcoin Core developers
+// Copyright (c) 2009-2020 The Samcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_NET_PROCESSING_H
-#define BITCOIN_NET_PROCESSING_H
+#ifndef SAMCOIN_NET_PROCESSING_H
+#define SAMCOIN_NET_PROCESSING_H
 
 #include <net.h>
 #include <validationinterface.h>
 
-class AddrMan;
+class CAddrMan;
 class CChainParams;
 class CTxMemPool;
 class ChainstateManager;
@@ -31,28 +31,15 @@ struct CNodeStateStats {
     std::vector<int> vHeightInFlight;
     uint64_t m_addr_processed = 0;
     uint64_t m_addr_rate_limited = 0;
-    bool m_addr_relay_enabled{false};
 };
 
 class PeerManager : public CValidationInterface, public NetEventsInterface
 {
 public:
-    static std::unique_ptr<PeerManager> make(const CChainParams& chainparams, CConnman& connman, AddrMan& addrman,
-                                             BanMan* banman, ChainstateManager& chainman,
+    static std::unique_ptr<PeerManager> make(const CChainParams& chainparams, CConnman& connman, CAddrMan& addrman,
+                                             BanMan* banman, CScheduler& scheduler, ChainstateManager& chainman,
                                              CTxMemPool& pool, bool ignore_incoming_txs);
     virtual ~PeerManager() { }
-
-    /**
-     * Attempt to manually fetch block from a given peer. We must already have the header.
-     *
-     * @param[in]  peer_id      The peer id
-     * @param[in]  block_index  The blockindex
-     * @returns std::nullopt if a request was successfully made, otherwise an error message
-     */
-    virtual std::optional<std::string> FetchBlock(NodeId peer_id, const CBlockIndex& block_index) = 0;
-
-    /** Begin running background tasks, should only be called once */
-    virtual void StartScheduledTasks(CScheduler& scheduler) = 0;
 
     /** Get statistics from node state */
     virtual bool GetNodeStateStats(NodeId nodeid, CNodeStateStats& stats) const = 0;
@@ -87,4 +74,4 @@ public:
                                 const std::chrono::microseconds time_received, const std::atomic<bool>& interruptMsgProc) = 0;
 };
 
-#endif // BITCOIN_NET_PROCESSING_H
+#endif // SAMCOIN_NET_PROCESSING_H
